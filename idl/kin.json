@@ -1,0 +1,1311 @@
+{
+  "address": "7CGtKBZVMKgWJRg92SmRiQkeQe8hvTV3SWrHRfsdSMWe",
+  "metadata": {
+    "name": "kin",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Kin: bonded savings circles with an on-chain reliability score"
+  },
+  "instructions": [
+    {
+      "name": "claim_bond",
+      "docs": [
+        "After the circle completes, each member reclaims whatever bond was not used to cover misses."
+      ],
+      "discriminator": [
+        173,
+        34,
+        157,
+        61,
+        45,
+        120,
+        246,
+        11
+      ],
+      "accounts": [
+        {
+          "name": "wallet",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "circle"
+        },
+        {
+          "name": "member",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "circle"
+              },
+              {
+                "kind": "account",
+                "path": "wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "score",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  111,
+                  114,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet_token",
+          "writable": true
+        },
+        {
+          "name": "bond_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "circle"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "contribute",
+      "docs": [
+        "Pay this round's contribution. On time = inside the period; late = inside the grace window."
+      ],
+      "discriminator": [
+        82,
+        33,
+        68,
+        131,
+        32,
+        0,
+        205,
+        95
+      ],
+      "accounts": [
+        {
+          "name": "wallet",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "circle",
+          "writable": true
+        },
+        {
+          "name": "member",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "circle"
+              },
+              {
+                "kind": "account",
+                "path": "wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "score",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  111,
+                  114,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet_token",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "circle"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "cover_missed",
+      "docs": [
+        "Anyone can call this once a member's payment window and grace have passed.",
+        "The member's bond pays their share so the round still completes; their score takes the hit."
+      ],
+      "discriminator": [
+        111,
+        83,
+        152,
+        171,
+        39,
+        155,
+        31,
+        70
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "docs": [
+            "Whoever cranks the cover; pays no fee beyond the transaction itself."
+          ],
+          "signer": true
+        },
+        {
+          "name": "circle",
+          "writable": true
+        },
+        {
+          "name": "member",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "circle"
+              },
+              {
+                "kind": "account",
+                "path": "member.wallet",
+                "account": "Member"
+              }
+            ]
+          }
+        },
+        {
+          "name": "score",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  111,
+                  114,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "member.wallet",
+                "account": "Member"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "circle"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "circle"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_circle",
+      "docs": [
+        "Create an empty circle. Members (including the creator) join afterwards."
+      ],
+      "discriminator": [
+        186,
+        99,
+        49,
+        131,
+        31,
+        51,
+        13,
+        198
+      ],
+      "accounts": [
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "circle",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  105,
+                  114,
+                  99,
+                  108,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "creator"
+              },
+              {
+                "kind": "arg",
+                "path": "circle_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "circle"
+              }
+            ]
+          }
+        },
+        {
+          "name": "bond_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "circle"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "circle_id",
+          "type": "u64"
+        },
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "contribution",
+          "type": "u64"
+        },
+        {
+          "name": "bond",
+          "type": "u64"
+        },
+        {
+          "name": "period_secs",
+          "type": "i64"
+        },
+        {
+          "name": "grace_secs",
+          "type": "i64"
+        },
+        {
+          "name": "max_members",
+          "type": "u8"
+        },
+        {
+          "name": "max_missed_allowed",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "join_circle",
+      "docs": [
+        "Lock the bond and take the next payout slot. The circle starts when the last seat fills."
+      ],
+      "discriminator": [
+        231,
+        168,
+        235,
+        18,
+        99,
+        12,
+        22,
+        7
+      ],
+      "accounts": [
+        {
+          "name": "wallet",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "circle",
+          "writable": true
+        },
+        {
+          "name": "member",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "circle"
+              },
+              {
+                "kind": "account",
+                "path": "wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "score",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  111,
+                  114,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet_token",
+          "writable": true
+        },
+        {
+          "name": "bond_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "circle"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "payout",
+      "docs": [
+        "Anyone can crank the payout once the period has ended and every member is resolved.",
+        "The pot goes straight to the round's recipient."
+      ],
+      "discriminator": [
+        149,
+        140,
+        194,
+        236,
+        174,
+        189,
+        6,
+        239
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "circle",
+          "writable": true
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "recipient_member",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "circle"
+              },
+              {
+                "kind": "account",
+                "path": "recipient_member.wallet",
+                "account": "Member"
+              }
+            ]
+          }
+        },
+        {
+          "name": "recipient_wallet"
+        },
+        {
+          "name": "recipient_token",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "recipient_wallet"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "circle"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "refund_open",
+      "docs": [
+        "If an open circle never filled within the join window, members take their bond back."
+      ],
+      "discriminator": [
+        229,
+        105,
+        121,
+        50,
+        160,
+        250,
+        173,
+        1
+      ],
+      "accounts": [
+        {
+          "name": "wallet",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "circle"
+        },
+        {
+          "name": "member",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "circle"
+              },
+              {
+                "kind": "account",
+                "path": "wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "score",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  111,
+                  114,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "wallet_token",
+          "writable": true
+        },
+        {
+          "name": "bond_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  110,
+                  100,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "circle"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Circle",
+      "discriminator": [
+        27,
+        59,
+        8,
+        117,
+        62,
+        199,
+        222,
+        252
+      ]
+    },
+    {
+      "name": "KinScore",
+      "discriminator": [
+        27,
+        178,
+        38,
+        84,
+        71,
+        63,
+        135,
+        183
+      ]
+    },
+    {
+      "name": "Member",
+      "discriminator": [
+        54,
+        19,
+        162,
+        21,
+        29,
+        166,
+        17,
+        198
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidMemberCount",
+      "msg": "Circle must have between 2 and 12 members"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidContribution",
+      "msg": "Contribution must be greater than zero"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidBond",
+      "msg": "Bond must be at least one contribution and at most one contribution per member"
+    },
+    {
+      "code": 6003,
+      "name": "PeriodTooShort",
+      "msg": "Round period is too short"
+    },
+    {
+      "code": 6004,
+      "name": "GraceTooLong",
+      "msg": "Grace period cannot be longer than the round period"
+    },
+    {
+      "code": 6005,
+      "name": "PotTooLarge",
+      "msg": "Round pot exceeds the safety cap"
+    },
+    {
+      "code": 6006,
+      "name": "NameTooLong",
+      "msg": "Circle name is too long"
+    },
+    {
+      "code": 6007,
+      "name": "NotOpen",
+      "msg": "Circle is not open for joining"
+    },
+    {
+      "code": 6008,
+      "name": "CircleFull",
+      "msg": "Circle is full"
+    },
+    {
+      "code": 6009,
+      "name": "NotActive",
+      "msg": "Circle is not active"
+    },
+    {
+      "code": 6010,
+      "name": "NotCompleted",
+      "msg": "Circle is not completed"
+    },
+    {
+      "code": 6011,
+      "name": "ScoreTooLow",
+      "msg": "Wallet's missed-payment history exceeds this circle's limit"
+    },
+    {
+      "code": 6012,
+      "name": "AlreadyResolved",
+      "msg": "Already paid or covered for this round"
+    },
+    {
+      "code": 6013,
+      "name": "RoundNotStarted",
+      "msg": "The round has not started yet"
+    },
+    {
+      "code": 6014,
+      "name": "WindowClosed",
+      "msg": "The payment window and grace period have passed"
+    },
+    {
+      "code": 6015,
+      "name": "WindowStillOpen",
+      "msg": "The payment window and grace period are still open"
+    },
+    {
+      "code": 6016,
+      "name": "RoundNotResolved",
+      "msg": "Not every member has paid or been covered for this round"
+    },
+    {
+      "code": 6017,
+      "name": "RoundNotEnded",
+      "msg": "The round period has not ended yet"
+    },
+    {
+      "code": 6018,
+      "name": "WrongRecipient",
+      "msg": "Wrong recipient for this round"
+    },
+    {
+      "code": 6019,
+      "name": "BondAlreadyClaimed",
+      "msg": "Bond already claimed"
+    },
+    {
+      "code": 6020,
+      "name": "JoinWindowOpen",
+      "msg": "The join window has not expired"
+    },
+    {
+      "code": 6021,
+      "name": "WrongCircle",
+      "msg": "Member does not belong to this circle"
+    },
+    {
+      "code": 6022,
+      "name": "Overflow",
+      "msg": "Arithmetic overflow"
+    }
+  ],
+  "types": [
+    {
+      "name": "Circle",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "circle_id",
+            "type": "u64"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "contribution",
+            "docs": [
+              "Amount each member pays per round."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bond",
+            "docs": [
+              "Amount each member locks on joining. Covers missed contributions."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "period_secs",
+            "type": "i64"
+          },
+          {
+            "name": "grace_secs",
+            "type": "i64"
+          },
+          {
+            "name": "max_members",
+            "type": "u8"
+          },
+          {
+            "name": "member_count",
+            "type": "u8"
+          },
+          {
+            "name": "max_missed_allowed",
+            "docs": [
+              "A wallet whose lifetime missed count exceeds this cannot join."
+            ],
+            "type": "u32"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "CircleStatus"
+              }
+            }
+          },
+          {
+            "name": "current_round",
+            "docs": [
+              "Index of the member who receives this round's pot."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "round_start_ts",
+            "type": "i64"
+          },
+          {
+            "name": "resolved_count",
+            "docs": [
+              "Members whose contribution for the current round is paid or covered."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "round_pot",
+            "type": "u64"
+          },
+          {
+            "name": "created_ts",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "type": "u8"
+          },
+          {
+            "name": "bond_vault_bump",
+            "type": "u8"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CircleStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Open"
+          },
+          {
+            "name": "Active"
+          },
+          {
+            "name": "Completed"
+          }
+        ]
+      }
+    },
+    {
+      "name": "KinScore",
+      "docs": [
+        "Portable reliability record for a wallet, shared across every circle it joins."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "on_time",
+            "type": "u32"
+          },
+          {
+            "name": "late",
+            "type": "u32"
+          },
+          {
+            "name": "missed",
+            "type": "u32"
+          },
+          {
+            "name": "circles_completed",
+            "type": "u32"
+          },
+          {
+            "name": "streak",
+            "type": "u32"
+          },
+          {
+            "name": "best_streak",
+            "type": "u32"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Member",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "circle",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "docs": [
+              "Join order; also the round in which this member receives the pot."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "bond_locked",
+            "type": "u64"
+          },
+          {
+            "name": "bond_used",
+            "type": "u64"
+          },
+          {
+            "name": "rounds_resolved",
+            "docs": [
+              "Rounds for which this member's contribution is paid or covered."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "received",
+            "type": "bool"
+          },
+          {
+            "name": "bond_claimed",
+            "type": "bool"
+          },
+          {
+            "name": "on_time",
+            "type": "u16"
+          },
+          {
+            "name": "late",
+            "type": "u16"
+          },
+          {
+            "name": "missed",
+            "type": "u16"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    }
+  ]
+}
