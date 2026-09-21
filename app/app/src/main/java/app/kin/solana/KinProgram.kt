@@ -26,11 +26,25 @@ data class CircleData(
     val resolvedCount: Int,
     val roundPot: Long,
     val createdTs: Long,
+    val randomize: Boolean,
+    val seekerOnly: Boolean,
+    val seekerAuthority: PublicKey,
+    val orderSlot: Long,
+    val orderSeed: ByteArray,
+    /** `payoutOrder[round]` is the member index paid in that round. */
+    val payoutOrder: List<Int>,
     val name: String,
 ) {
     val roundEndTs get() = roundStartTs + periodSecs
     val graceEndTs get() = roundStartTs + periodSecs + graceSecs
+
+    /** The round in which the member with this join index is paid, or null if the order is not set yet. */
+    fun roundOf(memberIndex: Int): Int? =
+        if (status == CircleStatus.Open) null else payoutOrder.take(memberCount).indexOf(memberIndex).takeIf { it >= 0 }
 }
+
+/** A Seeker Genesis Token account and its mint, passed to the program to prove Seeker ownership. */
+data class SgtProof(val token: PublicKey, val mint: PublicKey)
 
 data class MemberData(
     val address: PublicKey,
@@ -87,6 +101,9 @@ object KinProgram {
 
     fun scorePda(wallet: PublicKey) = Pda.find(listOf("score".toByteArray(), wallet.bytes), PROGRAM_ID).first
 
+    /** The shared delegate every member approves for autopay. It signs only inside `collect`. */
+    val AUTOPAY: PublicKey by lazy { Pda.find(listOf("autopay".toByteArray()), PROGRAM_ID).first }
+
     fun associatedTokenAddress(owner: PublicKey, mint: PublicKey) =
         Pda.find(listOf(owner.bytes, TOKEN_PROGRAM.bytes, mint.bytes), ATA_PROGRAM).first
 
@@ -103,12 +120,16 @@ object KinProgram {
         graceSecs: Long,
         maxMembers: Int,
         maxMissedAllowed: Long,
+        randomize: Boolean,
+        seekerOnly: Boolean,
+        seekerAuthority: PublicKey,
     ): Instruction {
         val circle = circlePda(creator, circleId)
         val data = BorshWriter()
             .bytes(instructionDiscriminator("create_circle"))
             .u64(circleId).string(name).u64(contribution).u64(bond)
             .i64(periodSecs).i64(graceSecs).u8(maxMembers).u32(maxMissedAllowed)
+            .u8(if (randomize) 1 else 0).u8(if (seekerOnly) 1 else 0).bytes(seekerAuthority.bytes)
             .toByteArray()
         return Instruction(
             PROGRAM_ID,
@@ -125,7 +146,8 @@ object KinProgram {
         )
     }
 
-    fun joinCircle(wallet: PublicKey, circle: CircleData): Instruction = Instruction(
+    /** Optional accounts the program does not need are passed as the program ID, Anchor's "None". */
+    fun joinCircle(wallet: PublicKey, circle: CircleData, sgt: SgtProof? = null): Instruction = Instruction(
         PROGRAM_ID,
         listOf(
             meta(wallet, signer = true, writable = true),
@@ -134,10 +156,29 @@ object KinProgram {
             meta(scorePda(wallet), writable = true),
             meta(associatedTokenAddress(wallet, circle.mint), writable = true),
             meta(bondVaultPda(circle.address), writable = true),
+            meta(TokenInstructions.SLOT_HASHES_SYSVAR),
+            meta(sgt?.token ?: PROGRAM_ID),
+            meta(sgt?.mint ?: PROGRAM_ID),
             meta(TOKEN_PROGRAM),
             meta(SYSTEM_PROGRAM),
         ),
         instructionDiscriminator("join_circle"),
+    )
+
+    /** Pulls one contribution from a member who approved autopay. Anyone can send this. */
+    fun collect(caller: PublicKey, circle: CircleData, target: PublicKey): Instruction = Instruction(
+        PROGRAM_ID,
+        listOf(
+            meta(caller, signer = true),
+            meta(circle.address, writable = true),
+            meta(memberPda(circle.address, target), writable = true),
+            meta(scorePda(target), writable = true),
+            meta(associatedTokenAddress(target, circle.mint), writable = true),
+            meta(vaultPda(circle.address), writable = true),
+            meta(AUTOPAY),
+            meta(TOKEN_PROGRAM),
+        ),
+        instructionDiscriminator("collect"),
     )
 
     fun contribute(wallet: PublicKey, circle: CircleData): Instruction = Instruction(
@@ -219,10 +260,17 @@ object KinProgram {
         val pot = r.u64()
         val created = r.i64()
         r.skip(3) // bumps
+        val randomize = r.bool()
+        val seekerOnly = r.bool()
+        val seekerAuthority = r.pubkey()
+        val orderSlot = r.u64()
+        val orderSeed = ByteArray(32) { r.u8().toByte() }
+        val payoutOrder = List(12) { r.u8() }
         val name = r.string()
         return CircleData(
             address, creator, circleId, mint, contribution, bond, period, grace, maxMembers, memberCount,
-            maxMissed, status, currentRound, roundStart, resolved, pot, created, name,
+            maxMissed, status, currentRound, roundStart, resolved, pot, created,
+            randomize, seekerOnly, seekerAuthority, orderSlot, orderSeed, payoutOrder, name,
         )
     }
 

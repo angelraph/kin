@@ -1,6 +1,5 @@
 package app.kin.solana
 
-import android.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -24,6 +23,8 @@ import java.util.concurrent.TimeUnit
 class RpcException(message: String) : Exception(message)
 
 class AccountInfo(val address: PublicKey, val data: ByteArray, val owner: PublicKey)
+
+class TxRef(val signature: String, val blockTime: Long?, val failed: Boolean)
 
 /** Minimal Solana JSON-RPC client. Only the calls Kin needs. */
 class SolanaRpc(private val url: String) {
@@ -56,7 +57,7 @@ class SolanaRpc(private val url: String) {
         val b64 = o["data"]!!.jsonArray[0].jsonPrimitive.content
         return AccountInfo(
             PublicKey.fromBase58(address),
-            Base64.decode(b64, Base64.DEFAULT),
+            java.util.Base64.getDecoder().decode(b64),
             PublicKey.fromBase58(o["owner"]!!.jsonPrimitive.content),
         )
     }
@@ -134,6 +135,74 @@ class SolanaRpc(private val url: String) {
         r.jsonObject["value"]!!.jsonObject["amount"]!!.jsonPrimitive.content.toLong()
     } catch (e: RpcException) {
         0L
+    }
+
+    /** Recent transactions that touched [address], newest first. */
+    suspend fun signaturesFor(address: PublicKey, limit: Int = 30): List<TxRef> {
+        val r = call(
+            "getSignaturesForAddress",
+            buildJsonArray {
+                add(address.toBase58())
+                add(buildJsonObject { put("limit", limit); put("commitment", "confirmed") })
+            },
+        )
+        return r.jsonArray.map { item ->
+            val o = item.jsonObject
+            TxRef(
+                signature = o["signature"]!!.jsonPrimitive.content,
+                blockTime = o["blockTime"]?.takeIf { it !is kotlinx.serialization.json.JsonNull }?.jsonPrimitive?.content?.toLong(),
+                failed = o["err"]?.let { it !is kotlinx.serialization.json.JsonNull } == true,
+            )
+        }
+    }
+
+    /** Program log lines of a confirmed transaction, or null if the node cannot return it yet. */
+    suspend fun logsOf(signature: String): List<String>? {
+        val r = call(
+            "getTransaction",
+            buildJsonArray {
+                add(signature)
+                add(buildJsonObject { put("encoding", "json"); put("maxSupportedTransactionVersion", 0); put("commitment", "confirmed") })
+            },
+        )
+        if (r is kotlinx.serialization.json.JsonNull) return null
+        val logs = r.jsonObject["meta"]?.jsonObject?.get("logMessages") ?: return null
+        return logs.jsonArray.map { it.jsonPrimitive.content }
+    }
+
+    /** Confirmation state of each signature: "processed", "confirmed", "finalized", or null if unknown. Failed transactions return "failed". */
+    suspend fun signatureStatuses(signatures: List<String>): List<String?> {
+        val r = call(
+            "getSignatureStatuses",
+            buildJsonArray {
+                add(buildJsonArray { signatures.forEach { add(it) } })
+                add(buildJsonObject { put("searchTransactionHistory", false) })
+            },
+        )
+        return r.jsonObject["value"]!!.jsonArray.map { v ->
+            if (v is kotlinx.serialization.json.JsonNull) null
+            else {
+                val o = v.jsonObject
+                if (o["err"]?.let { it !is kotlinx.serialization.json.JsonNull } == true) "failed"
+                else o["confirmationStatus"]?.jsonPrimitive?.content
+            }
+        }
+    }
+
+    /** All token accounts a wallet owns under one token program (classic or Token-2022). */
+    suspend fun tokenAccountsByOwner(owner: PublicKey, tokenProgram: PublicKey): List<AccountInfo> {
+        val r = call(
+            "getTokenAccountsByOwner",
+            buildJsonArray {
+                add(owner.toBase58())
+                add(buildJsonObject { put("programId", tokenProgram.toBase58()) })
+                add(buildJsonObject { put("encoding", "base64"); put("commitment", "confirmed") })
+            },
+        )
+        return r.jsonObject["value"]!!.jsonArray.mapNotNull { item ->
+            val o = item.jsonObject
+            decodeAccount(o["pubkey"]!!.jsonPrimitive.content, o["account"]!!)
+        }
     }
 
     suspend fun clusterTime(): Long {
