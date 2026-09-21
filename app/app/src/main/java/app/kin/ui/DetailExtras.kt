@@ -36,18 +36,13 @@ import app.kin.solana.KinEvent
 import app.kin.solana.KinProgram
 import app.kin.solana.MemberData
 import app.kin.solana.OrderProof
+import app.kin.watch.AlertRules
 
 private val ExtraCardShape = RoundedCornerShape(20.dp)
 
 /** Members who owe this round, approved enough autopay, and can still be collected from. */
-fun dueForAutopay(detail: CircleDetail, now: Long): List<MemberData> {
-    val c = detail.circle
-    if (c.status != CircleStatus.Active || now > c.graceEndTs) return emptyList()
-    return detail.members.filter { m ->
-        val a = detail.allowances[m.wallet]
-        m.roundsResolved <= c.currentRound && a != null && a.delegatedToKin && a.amount >= c.contribution
-    }
-}
+fun dueForAutopay(detail: CircleDetail, now: Long): List<MemberData> =
+    AlertRules.dueForAutopay(detail.circle, detail.members, detail.allowances, now)
 
 @Composable
 fun Tag(text: String, color: androidx.compose.ui.graphics.Color) {

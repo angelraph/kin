@@ -8,6 +8,7 @@ A circle is a group that pays a fixed amount every round. Each round, one member
 
 - **People miss payments.** Every member locks a bond. If a payment is missed, the bond pays that member's share so the pot still goes out on time, and their on-chain Kin Score records it.
 - **People forget.** Autopay uses SPL token delegation. A member approves a capped, revocable allowance equal to their remaining dues. Anyone can then trigger the collection, and the program can only move one contribution per round, from that member's own token account into that circle's vault.
+- **Nobody notices what is due.** A background watcher checks the chain every 15 minutes, read-only, and sends a notification when a payment is due, autopay is ready to collect, a bond can cover a miss, or a payout can be sent. Tapping it opens the circle. Signing still happens in the wallet on the member's tap, so the app never holds a key. One member collecting covers everyone on autopay.
 - **Arguments about who goes first.** A circle can draw its payout order from on-chain randomness when it fills. The seed is stored on-chain, so anyone can recompute the order and check it. The app does exactly that.
 - **Strangers and fake accounts.** A circle can require a Seeker Genesis Token. The program itself checks the token account, its owner and its mint authority, not just the app.
 - **"Trust me" accounting.** Every action emits an on-chain event. The app rebuilds a circle's history from real transaction logs and checks that the vaults hold at least what the program says is owed.

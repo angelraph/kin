@@ -81,6 +81,7 @@ import kotlinx.coroutines.delay
 
 private enum class Route { Home, Create }
 
+private const val REFRESH_MILLIS = 12_000L
 private val ContentWidth = 600.dp
 private val ButtonMinHeight = 56.dp
 private val ButtonShape = RoundedCornerShape(16.dp)
@@ -104,8 +105,12 @@ class Actions(
     val onCollect: () -> Unit,
     val onLoadProof: () -> Unit,
     val onOpenUrl: (String) -> Unit,
+    val onToggleReminders: (Boolean) -> Unit,
     val onDismissNotice: () -> Unit,
 )
+
+/** Whether the user wants reminders, and whether the system currently lets Kin show notifications. */
+class Reminders(val on: Boolean, val allowed: Boolean)
 
 class CreateRequest(
     val name: String,
@@ -120,7 +125,7 @@ class CreateRequest(
 )
 
 @Composable
-fun KinApp(state: UiState, actions: Actions) {
+fun KinApp(state: UiState, actions: Actions, reminders: Reminders) {
     var route by remember { mutableStateOf(Route.Home) }
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(state.notice) {
@@ -148,7 +153,7 @@ fun KinApp(state: UiState, actions: Actions) {
                             route = Route.Home
                         },
                     )
-                    else -> HomeScreen(state, actions) { route = Route.Create }
+                    else -> HomeScreen(state, actions, reminders) { route = Route.Create }
                 }
                 if (state.busy) {
                     Box(
@@ -199,7 +204,7 @@ private fun ConnectScreen(busy: Boolean, onConnect: () -> Unit) {
 }
 
 @Composable
-private fun HomeScreen(state: UiState, actions: Actions, onCreate: () -> Unit) {
+private fun HomeScreen(state: UiState, actions: Actions, reminders: Reminders, onCreate: () -> Unit) {
     var showJoin by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
@@ -227,6 +232,15 @@ private fun HomeScreen(state: UiState, actions: Actions, onCreate: () -> Unit) {
                 }
             }
             item { ScoreCard(state.myScore) }
+            item {
+                ToggleRow(
+                    "Reminders",
+                    if (reminders.on && !reminders.allowed) "Notifications are blocked. Allow them for Kin in system settings."
+                    else "A notification when a payment is due, autopay is ready, or a payout can be sent.",
+                    reminders.on,
+                    actions.onToggleReminders,
+                )
+            }
             item {
                 OutlinedButton(
                     onClick = { showJoin = true },
@@ -518,6 +532,13 @@ private fun DetailScreen(state: UiState, detail: CircleDetail, actions: Actions)
         while (true) {
             now = System.currentTimeMillis() / 1000
             delay(1000)
+        }
+    }
+    // Keep the open circle current: other members pay, autopay becomes due, rounds roll over.
+    LaunchedEffect(c.address) {
+        while (true) {
+            delay(REFRESH_MILLIS)
+            actions.onRefresh()
         }
     }
 

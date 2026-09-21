@@ -1,35 +1,58 @@
 package app.kin
 
+import android.Manifest
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import app.kin.solana.CircleData
 import app.kin.solana.PublicKey
 import app.kin.ui.Actions
 import app.kin.ui.KinApp
 import app.kin.ui.KinTheme
 import app.kin.ui.KinViewModel
+import app.kin.ui.Reminders
 import app.kin.wallet.WalletSession
+import app.kin.watch.CircleWatchWorker
+import app.kin.watch.KinPrefs
+import app.kin.watch.Notifier
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 
 class MainActivity : ComponentActivity() {
     private val vm: KinViewModel by viewModels()
-    private var pendingJoin: PublicKey? = null
+    private lateinit var prefs: KinPrefs
+    private var pendingCircle: PublicKey? = null
+
+    private var remindersOn by mutableStateOf(true)
+    private var notificationsAllowed by mutableStateOf(true)
+
+    // Registered up front, as required, and used when reminders are switched on.
+    private val notificationPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+            notificationsAllowed = Notifier.canPost(this)
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        prefs = KinPrefs(this)
+        remindersOn = prefs.remindersEnabled
+        notificationsAllowed = Notifier.canPost(this)
 
         // Must be created before the activity is STARTED so MWA can register its result launcher.
         val sender = ActivityResultSender(this)
         vm.attach(WalletSession(sender))
-        pendingJoin = parseInvite(intent)
+        pendingCircle = parseCircleLink(intent)
 
         val actions = Actions(
             onConnect = vm::connect,
@@ -52,29 +75,57 @@ class MainActivity : ComponentActivity() {
             onCollect = vm::collectDue,
             onLoadProof = vm::loadProof,
             onOpenUrl = ::openUrl,
+            onToggleReminders = ::setReminders,
             onDismissNotice = vm::dismissNotice,
         )
 
         setContent {
             val state by vm.state.collectAsState()
+
+            // Follow the connected wallet: remember it for the background watcher, and open any link that arrived first.
+            LaunchedEffect(state.wallet) {
+                prefs.wallet = state.wallet
+                if (state.wallet == null) {
+                    CircleWatchWorker.cancel(this@MainActivity)
+                    prefs.clearShown()
+                } else {
+                    if (prefs.remindersEnabled) startWatching()
+                    pendingCircle?.let {
+                        pendingCircle = null
+                        vm.openCircle(it)
+                    }
+                }
+            }
+
             KinTheme {
-                KinApp(state = state, actions = actions)
+                KinApp(state = state, actions = actions, reminders = Reminders(remindersOn, notificationsAllowed))
             }
         }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        parseInvite(intent)?.let { vm.openCircle(it) }
+        val circle = parseCircleLink(intent) ?: return
+        if (vm.state.value.wallet != null) vm.openCircle(circle) else pendingCircle = circle
     }
 
     override fun onResume() {
         super.onResume()
-        // Open an invite once a wallet is connected.
-        val p = pendingJoin
-        if (p != null && vm.state.value.wallet != null) {
-            pendingJoin = null
-            vm.openCircle(p)
+        notificationsAllowed = Notifier.canPost(this)
+    }
+
+    private fun setReminders(on: Boolean) {
+        prefs.remindersEnabled = on
+        remindersOn = on
+        if (on) startWatching() else CircleWatchWorker.cancel(this)
+    }
+
+    /** Schedules the background check and asks for notification permission once, when it is first needed. */
+    private fun startWatching() {
+        CircleWatchWorker.schedule(this)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !Notifier.canPost(this) && !prefs.askedForNotifications) {
+            prefs.askedForNotifications = true
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 
@@ -92,10 +143,12 @@ class MainActivity : ComponentActivity() {
         startActivity(Intent.createChooser(send, "Invite to circle"))
     }
 
-    private fun parseInvite(intent: Intent?): PublicKey? = intent?.data?.let { parseInviteUri(it) }
-
-    private fun parseInviteUri(uri: Uri): PublicKey? =
-        if (uri.scheme == "kin" && uri.host == "join") uri.lastPathSegment?.let { runCatching { PublicKey.fromBase58(it) }.getOrNull() } else null
+    /** Reads kin://join/CIRCLE (invites) and kin://circle/CIRCLE (notification taps). */
+    private fun parseCircleLink(intent: Intent?): PublicKey? {
+        val uri = intent?.data ?: return null
+        if (uri.scheme != "kin" || (uri.host != "join" && uri.host != "circle")) return null
+        return uri.lastPathSegment?.let { runCatching { PublicKey.fromBase58(it) }.getOrNull() }
+    }
 
     private fun parseInviteText(text: String): PublicKey? =
         runCatching { PublicKey.fromBase58(text.substringAfterLast('/').trim()) }.getOrNull()
