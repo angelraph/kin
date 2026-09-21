@@ -10,6 +10,9 @@ pub const JOIN_WINDOW_SECS: i64 = 14 * 24 * 60 * 60;
 /// (1_000_000_000 = 1,000 USDC at 6 decimals). Keeps early mainnet exposure small.
 pub const MAX_POT_BASE_UNITS: u64 = 1_000_000_000;
 
+/// The one delegate authority every member approves for autopay. Seeds: ["autopay"].
+pub const AUTOPAY_SEED: &[u8] = b"autopay";
+
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, InitSpace)]
 pub enum CircleStatus {
     /// Waiting for members to join and lock their bonds.
@@ -37,7 +40,7 @@ pub struct Circle {
     /// A wallet whose lifetime missed count exceeds this cannot join.
     pub max_missed_allowed: u32,
     pub status: CircleStatus,
-    /// Index of the member who receives this round's pot.
+    /// Index into `payout_order`: the round currently being collected.
     pub current_round: u8,
     pub round_start_ts: i64,
     /// Members whose contribution for the current round is paid or covered.
@@ -47,6 +50,18 @@ pub struct Circle {
     pub bump: u8,
     pub vault_bump: u8,
     pub bond_vault_bump: u8,
+    /// When true, payout order is drawn from on-chain randomness when the circle fills.
+    pub randomize: bool,
+    /// When true, joining requires proof of a Seeker Genesis Token.
+    pub seeker_only: bool,
+    /// Mint authority that a valid Seeker Genesis Token must have. Only read when `seeker_only`.
+    pub seeker_authority: Pubkey,
+    /// Slot whose hash seeded the draw. Zero when the order was not randomized.
+    pub order_slot: u64,
+    /// Seed of the draw. Anyone can recompute `payout_order` from it.
+    pub order_seed: [u8; 32],
+    /// `payout_order[round]` is the member index paid in that round.
+    pub payout_order: [u8; MAX_MEMBERS as usize],
     #[max_len(MAX_NAME_LEN)]
     pub name: String,
 }
@@ -56,7 +71,7 @@ pub struct Circle {
 pub struct Member {
     pub circle: Pubkey,
     pub wallet: Pubkey,
-    /// Join order; also the round in which this member receives the pot.
+    /// Join order. Which round pays this member is decided by `Circle::payout_order`.
     pub index: u8,
     pub bond_locked: u64,
     pub bond_used: u64,

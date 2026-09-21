@@ -46,6 +46,14 @@ pub enum KinError {
     JoinWindowOpen,
     #[msg("Member does not belong to this circle")]
     WrongCircle,
+    #[msg("Autopay is not approved on this token account")]
+    NotDelegated,
+    #[msg("The autopay allowance is smaller than one contribution")]
+    AllowanceTooLow,
+    #[msg("This circle requires a valid Seeker Genesis Token")]
+    SeekerRequired,
+    #[msg("Recent slot hashes are unavailable")]
+    SlotHashesUnavailable,
     #[msg("Arithmetic overflow")]
     Overflow,
 }
