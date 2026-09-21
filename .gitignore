@@ -1,0 +1,15 @@
+target/
+node_modules/
+.anchor/
+test-ledger/
+*.log
+.DS_Store
+# Android
+app/**/build/
+app/.gradle/
+app/local.properties
+*.jks
+*.keystore
+# secrets
+.env
+*-keypair.json
