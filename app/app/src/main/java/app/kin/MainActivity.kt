@@ -48,6 +48,10 @@ class MainActivity : ComponentActivity() {
             onClaim = vm::claimBond,
             onJoin = vm::joinCircle,
             onShare = ::shareInvite,
+            onSetAutopay = vm::setAutopay,
+            onCollect = vm::collectDue,
+            onLoadProof = vm::loadProof,
+            onOpenUrl = ::openUrl,
             onDismissNotice = vm::dismissNotice,
         )
 
@@ -72,6 +76,11 @@ class MainActivity : ComponentActivity() {
             pendingJoin = null
             vm.openCircle(p)
         }
+    }
+
+    private fun openUrl(url: String) {
+        runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+            .onFailure { vm.showNotice("No browser found to open the link") }
     }
 
     private fun shareInvite(c: CircleData) {

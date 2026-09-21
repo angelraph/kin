@@ -98,8 +98,12 @@ class Actions(
     val onCover: (PublicKey) -> Unit,
     val onPayout: (PublicKey) -> Unit,
     val onClaim: () -> Unit,
-    val onJoin: (PublicKey) -> Unit,
+    val onJoin: (PublicKey, Boolean) -> Unit,
     val onShare: (CircleData) -> Unit,
+    val onSetAutopay: (Boolean) -> Unit,
+    val onCollect: () -> Unit,
+    val onLoadProof: () -> Unit,
+    val onOpenUrl: (String) -> Unit,
     val onDismissNotice: () -> Unit,
 )
 
@@ -111,6 +115,8 @@ class CreateRequest(
     val graceSecs: Long,
     val maxMembers: Int,
     val maxMissed: Long,
+    val randomize: Boolean,
+    val seekerOnly: Boolean,
 )
 
 @Composable
@@ -212,6 +218,10 @@ private fun HomeScreen(state: UiState, actions: Actions, onCreate: () -> Unit) {
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
+                        if (state.seeker != null) {
+                            Spacer(Modifier.height(6.dp))
+                            Tag("Seeker verified", KinColors.Green)
+                        }
                     }
                     IconButton(onClick = actions.onRefresh) { Icon(Icons.Filled.Refresh, contentDescription = "Refresh") }
                 }
@@ -380,6 +390,18 @@ private fun PotBar(c: CircleData) {
 }
 
 @Composable
+private fun ToggleRow(title: String, detail: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Spacer(Modifier.width(12.dp))
+        Switch(checked = checked, onCheckedChange = onChange)
+    }
+}
+
+@Composable
 private fun Stepper(label: String, onMinus: () -> Unit, onPlus: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(label, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
@@ -397,6 +419,8 @@ private fun CreateScreen(busy: Boolean, onBack: () -> Unit, onCreate: (CreateReq
     var members by remember { mutableIntStateOf(4) }
     var bondMultiple by remember { mutableIntStateOf(2) }
     var strict by remember { mutableStateOf(false) }
+    var randomOrder by remember { mutableStateOf(true) }
+    var seekerOnly by remember { mutableStateOf(false) }
     val periods = listOf("Demo, 1 min" to 60L, "Daily" to 86_400L, "Weekly" to 604_800L, "Monthly" to 2_592_000L)
     var period by remember { mutableLongStateOf(periods[0].second) }
 
@@ -445,6 +469,16 @@ private fun CreateScreen(busy: Boolean, onBack: () -> Unit, onCreate: (CreateReq
             Spacer(Modifier.width(12.dp))
             Switch(checked = strict, onCheckedChange = { strict = it })
         }
+        ToggleRow(
+            "Random payout order",
+            "Drawn on-chain when the circle fills. Anyone can recompute it and check.",
+            randomOrder,
+        ) { randomOrder = it }
+        ToggleRow(
+            "Seeker owners only",
+            "The program checks a Seeker Genesis Token before anyone can join.",
+            seekerOnly,
+        ) { seekerOnly = it }
         if (contribution != null) {
             Text(
                 "The pot each round is ${formatAmount(contribution * members)}. Every member locks ${formatAmount(contribution * bondMultiple)} as a bond and gets back whatever is not used.",
@@ -464,6 +498,8 @@ private fun CreateScreen(busy: Boolean, onBack: () -> Unit, onCreate: (CreateReq
                         graceSecs = maxOf(period / 4, 10L),
                         maxMembers = members,
                         maxMissed = if (strict) 0 else 1000,
+                        randomize = randomOrder,
+                        seekerOnly = seekerOnly,
                     ),
                 )
             },
@@ -485,11 +521,13 @@ private fun DetailScreen(state: UiState, detail: CircleDetail, actions: Actions)
         }
     }
 
+    var joinWithAutopay by remember { mutableStateOf(true) }
+    val dueAutopay = dueForAutopay(detail, now)
     val active = c.status == CircleStatus.Active
     val iResolved = myMember != null && myMember.roundsResolved > c.currentRound
     val canPay = active && myMember != null && !iResolved && now <= c.graceEndTs
     val pendingAfterGrace = if (active && now > c.graceEndTs) detail.members.filter { it.roundsResolved <= c.currentRound } else emptyList()
-    val recipient = detail.members.firstOrNull { it.index == c.currentRound }
+    val recipient = if (active) detail.members.firstOrNull { it.index == c.payoutOrder[c.currentRound] } else null
     val canPayout = active && c.resolvedCount == c.memberCount && now >= c.roundEndTs && recipient != null
 
     LazyColumn(
@@ -544,10 +582,18 @@ private fun DetailScreen(state: UiState, detail: CircleDetail, actions: Actions)
             }
         }
 
+        item { CircleTags(c) }
+
         item {
             when {
-                c.status == CircleStatus.Open && myMember == null ->
-                    PrimaryButton("Join and lock ${formatAmount(c.bond)} bond", { actions.onJoin(c.address) })
+                c.status == CircleStatus.Open && myMember == null -> Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    ToggleRow(
+                        "Turn on autopay",
+                        "Allows collecting up to ${formatAmount(c.contribution * c.maxMembers)}, your total dues here. Revoke any time.",
+                        joinWithAutopay,
+                    ) { joinWithAutopay = it }
+                    PrimaryButton("Join and lock ${formatAmount(c.bond)} bond", { actions.onJoin(c.address, joinWithAutopay) })
+                }
                 c.status == CircleStatus.Open ->
                     Text(
                         "Waiting for members: ${c.memberCount}/${c.maxMembers}. Share the invite link.",
@@ -561,7 +607,22 @@ private fun DetailScreen(state: UiState, detail: CircleDetail, actions: Actions)
             }
         }
 
-        if (canPayout && recipient != null) {
+        if (myMember != null && c.status != CircleStatus.Completed) {
+            item {
+                AutopayCard(c, myMember, detail.allowances[me], actions.onSetAutopay)
+            }
+        }
+        if (dueAutopay.isNotEmpty()) {
+            item {
+                OutlinedButton(
+                    onClick = actions.onCollect,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                    shape = RoundedCornerShape(14.dp),
+                ) { Text("Collect autopay from ${dueAutopay.size} member${if (dueAutopay.size > 1) "s" else ""}") }
+            }
+        }
+
+        if (canPayout) {
             item {
                 PrimaryButton(
                     "Send pot to ${if (recipient.wallet == me) "you" else shortKey(recipient.wallet)}",
@@ -582,13 +643,14 @@ private fun DetailScreen(state: UiState, detail: CircleDetail, actions: Actions)
         items(detail.members, key = { it.address.toBase58() }) { m ->
             MemberRow(c, m, m.wallet == me, detail.scores[m.wallet])
         }
+        item { ProofSection(c, detail.proof, actions.onLoadProof, actions.onOpenUrl, now) }
     }
 }
 
 @Composable
 private fun MemberRow(c: CircleData, m: MemberData, isMe: Boolean, score: ScoreData?) {
     val paid = m.roundsResolved > c.currentRound
-    val isRecipient = c.status == CircleStatus.Active && m.index == c.currentRound
+    val isRecipient = c.status == CircleStatus.Active && c.roundOf(m.index) == c.currentRound
     Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
@@ -606,6 +668,7 @@ private fun MemberRow(c: CircleData, m: MemberData, isMe: Boolean, score: ScoreD
                 Text(if (isMe) "You" else shortKey(m.wallet), style = MaterialTheme.typography.titleMedium)
                 Text(
                     buildString {
+                        c.roundOf(m.index)?.let { append("Paid in round ${it + 1}  ·  ") }
                         append(score?.reliabilityPercent?.let { "$it% on time" } ?: "New member")
                         if (m.missed > 0) append("  ·  ${m.missed} missed here")
                         if (m.bondUsed > 0) append("  ·  bond used ${formatAmount(m.bondUsed)}")
