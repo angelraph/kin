@@ -19,6 +19,8 @@ Kin is a mobile-native rotating savings circle for Android and the Solana Seeker
 
 ## On-chain program
 
+Devnet program ID: `7CGtKBZVMKgWJRg92SmRiQkeQe8hvTV3SWrHRfsdSMWe`
+
 Instructions: `create_circle`, `join_circle`, `contribute`, `cover_missed`, `payout`, `claim_bond`, `refund_open`.
 
 Rules enforced by the program:
