@@ -13,3 +13,7 @@ app/local.properties
 # secrets
 .env
 *-keypair.json
+
+# devnet test keys
+scripts/.seeker-authority.json
+scripts/.demo-mint

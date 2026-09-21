@@ -119,6 +119,140 @@
       "args": []
     },
     {
+      "name": "collect",
+      "docs": [
+        "Anyone can collect a member's contribution if that member approved the Kin autopay",
+        "allowance on their token account. Money can only move from the member's own token account",
+        "into this circle's vault, at most one contribution per round.",
+        "Because the member authorised it in advance and the collector controls timing,",
+        "a collection inside the payment window always counts as on time."
+      ],
+      "discriminator": [
+        208,
+        47,
+        194,
+        155,
+        17,
+        98,
+        82,
+        236
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "docs": [
+            "Whoever collects pays only the transaction fee."
+          ],
+          "signer": true
+        },
+        {
+          "name": "circle",
+          "writable": true
+        },
+        {
+          "name": "member",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  101,
+                  109,
+                  98,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "circle"
+              },
+              {
+                "kind": "account",
+                "path": "member.wallet",
+                "account": "Member"
+              }
+            ]
+          }
+        },
+        {
+          "name": "score",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  99,
+                  111,
+                  114,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "member.wallet",
+                "account": "Member"
+              }
+            ]
+          }
+        },
+        {
+          "name": "member_token",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "circle"
+              }
+            ]
+          }
+        },
+        {
+          "name": "autopay",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  117,
+                  116,
+                  111,
+                  112,
+                  97,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "contribute",
       "docs": [
         "Pay this round's contribution. On time = inside the period; late = inside the grace window."
@@ -501,13 +635,26 @@
         {
           "name": "max_missed_allowed",
           "type": "u32"
+        },
+        {
+          "name": "randomize",
+          "type": "bool"
+        },
+        {
+          "name": "seeker_only",
+          "type": "bool"
+        },
+        {
+          "name": "seeker_authority",
+          "type": "pubkey"
         }
       ]
     },
     {
       "name": "join_circle",
       "docs": [
-        "Lock the bond and take the next payout slot. The circle starts when the last seat fills."
+        "Lock the bond and take a seat. The circle starts, and the payout order is fixed,",
+        "when the last seat fills."
       ],
       "discriminator": [
         231,
@@ -608,6 +755,18 @@
               }
             ]
           }
+        },
+        {
+          "name": "slot_hashes",
+          "address": "SysvarS1otHashes111111111111111111111111111"
+        },
+        {
+          "name": "sgt_token",
+          "optional": true
+        },
+        {
+          "name": "sgt_mint",
+          "optional": true
         },
         {
           "name": "token_program",
@@ -960,6 +1119,99 @@
       ]
     }
   ],
+  "events": [
+    {
+      "name": "BondReturned",
+      "discriminator": [
+        41,
+        85,
+        150,
+        247,
+        210,
+        150,
+        160,
+        118
+      ]
+    },
+    {
+      "name": "CircleCreated",
+      "discriminator": [
+        210,
+        110,
+        215,
+        179,
+        247,
+        145,
+        243,
+        135
+      ]
+    },
+    {
+      "name": "Contributed",
+      "discriminator": [
+        196,
+        199,
+        157,
+        136,
+        180,
+        222,
+        100,
+        118
+      ]
+    },
+    {
+      "name": "MemberJoined",
+      "discriminator": [
+        156,
+        199,
+        149,
+        88,
+        193,
+        203,
+        191,
+        210
+      ]
+    },
+    {
+      "name": "MissCovered",
+      "discriminator": [
+        175,
+        223,
+        86,
+        222,
+        222,
+        55,
+        47,
+        151
+      ]
+    },
+    {
+      "name": "OrderDrawn",
+      "discriminator": [
+        123,
+        186,
+        193,
+        55,
+        132,
+        246,
+        230,
+        113
+      ]
+    },
+    {
+      "name": "PaidOut",
+      "discriminator": [
+        6,
+        137,
+        209,
+        225,
+        252,
+        53,
+        249,
+        252
+      ]
+    }
+  ],
   "errors": [
     {
       "code": 6000,
@@ -1073,11 +1325,58 @@
     },
     {
       "code": 6022,
+      "name": "NotDelegated",
+      "msg": "Autopay is not approved on this token account"
+    },
+    {
+      "code": 6023,
+      "name": "AllowanceTooLow",
+      "msg": "The autopay allowance is smaller than one contribution"
+    },
+    {
+      "code": 6024,
+      "name": "SeekerRequired",
+      "msg": "This circle requires a valid Seeker Genesis Token"
+    },
+    {
+      "code": 6025,
+      "name": "SlotHashesUnavailable",
+      "msg": "Recent slot hashes are unavailable"
+    },
+    {
+      "code": 6026,
       "name": "Overflow",
       "msg": "Arithmetic overflow"
     }
   ],
   "types": [
+    {
+      "name": "BondReturned",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "circle",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "refunded_open",
+            "docs": [
+              "True when returned because the circle never filled."
+            ],
+            "type": "bool"
+          }
+        ]
+      }
+    },
     {
       "name": "Circle",
       "type": {
@@ -1143,7 +1442,7 @@
           {
             "name": "current_round",
             "docs": [
-              "Index of the member who receives this round's pot."
+              "Index into `payout_order`: the round currently being collected."
             ],
             "type": "u8"
           },
@@ -1179,8 +1478,108 @@
             "type": "u8"
           },
           {
+            "name": "randomize",
+            "docs": [
+              "When true, payout order is drawn from on-chain randomness when the circle fills."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "seeker_only",
+            "docs": [
+              "When true, joining requires proof of a Seeker Genesis Token."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "seeker_authority",
+            "docs": [
+              "Mint authority that a valid Seeker Genesis Token must have. Only read when `seeker_only`."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "order_slot",
+            "docs": [
+              "Slot whose hash seeded the draw. Zero when the order was not randomized."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "order_seed",
+            "docs": [
+              "Seed of the draw. Anyone can recompute `payout_order` from it."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "payout_order",
+            "docs": [
+              "`payout_order[round]` is the member index paid in that round."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                12
+              ]
+            }
+          },
+          {
             "name": "name",
             "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CircleCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "circle",
+            "type": "pubkey"
+          },
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "contribution",
+            "type": "u64"
+          },
+          {
+            "name": "bond",
+            "type": "u64"
+          },
+          {
+            "name": "period_secs",
+            "type": "i64"
+          },
+          {
+            "name": "grace_secs",
+            "type": "i64"
+          },
+          {
+            "name": "max_members",
+            "type": "u8"
+          },
+          {
+            "name": "randomize",
+            "type": "bool"
+          },
+          {
+            "name": "seeker_only",
+            "type": "bool"
           }
         ]
       }
@@ -1198,6 +1597,41 @@
           },
           {
             "name": "Completed"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Contributed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "circle",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "round",
+            "type": "u8"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "on_time",
+            "type": "bool"
+          },
+          {
+            "name": "autopay",
+            "docs": [
+              "True when collected through the member's pre-approved autopay allowance."
+            ],
+            "type": "bool"
           }
         ]
       }
@@ -1261,7 +1695,7 @@
           {
             "name": "index",
             "docs": [
-              "Join order; also the round in which this member receives the pot."
+              "Join order. Which round pays this member is decided by `Circle::payout_order`."
             ],
             "type": "u8"
           },
@@ -1303,6 +1737,137 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MemberJoined",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "circle",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u8"
+          },
+          {
+            "name": "bond",
+            "type": "u64"
+          },
+          {
+            "name": "started",
+            "docs": [
+              "True when this join filled the circle and started round 0."
+            ],
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MissCovered",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "circle",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "round",
+            "type": "u8"
+          },
+          {
+            "name": "covered",
+            "docs": [
+              "Amount the bond contributed. Less than the contribution when the bond ran low."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "shortfall",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OrderDrawn",
+      "docs": [
+        "Emitted once, when the circle fills and the payout order is fixed."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "circle",
+            "type": "pubkey"
+          },
+          {
+            "name": "randomized",
+            "type": "bool"
+          },
+          {
+            "name": "slot",
+            "type": "u64"
+          },
+          {
+            "name": "seed",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "order",
+            "type": {
+              "array": [
+                "u8",
+                12
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaidOut",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "circle",
+            "type": "pubkey"
+          },
+          {
+            "name": "recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "round",
+            "type": "u8"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "completed",
+            "type": "bool"
           }
         ]
       }
