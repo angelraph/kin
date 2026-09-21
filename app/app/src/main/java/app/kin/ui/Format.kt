@@ -5,9 +5,11 @@ import app.kin.solana.PublicKey
 import java.math.BigDecimal
 import java.math.RoundingMode
 
-/** Base units -> "12.5 USDC". */
+/** Base units -> "12.5 USDC". Amounts under 0.01 keep full precision so they never read as zero. */
 fun formatAmount(baseUnits: Long, withSymbol: Boolean = true): String {
-    val v = BigDecimal(baseUnits).movePointLeft(Config.TOKEN_DECIMALS).setScale(2, RoundingMode.DOWN)
+    val exact = BigDecimal(baseUnits).movePointLeft(Config.TOKEN_DECIMALS)
+    val scale = if (baseUnits > 0 && exact < BigDecimal("0.01")) Config.TOKEN_DECIMALS else 2
+    val v = exact.setScale(scale, RoundingMode.DOWN)
     val s = v.stripTrailingZeros().let { if (it.scale() < 0) it.setScale(0) else it }.toPlainString()
     return if (withSymbol) "$s ${Config.TOKEN_SYMBOL}" else s
 }
