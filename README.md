@@ -1,21 +1,22 @@
 # Kin
 
-**Save together with people you trust, and never get burned by the ones you shouldn't.**
+Savings circles for people who trust each other, and protection for when someone slips.
 
-Kin is a mobile-native rotating savings circle for Android and the Solana Seeker. A group pools a fixed amount each round and one member receives the pot each round until everyone has been paid. Kin makes that safe:
+A circle is a group that pays a fixed amount every round. Each round, one member receives the whole pot, until everyone has had a turn. It is how millions of people already save, usually on a notebook and a WhatsApp group. Kin puts it on Solana so nobody has to hold the money and nobody has to take anyone's word.
 
-- **Bonded circles.** Every member locks a bond on joining. If someone misses a payment, their bond covers their share on-chain, so the pot still pays out on time.
-- **Kin Score.** Each wallet carries an on-chain reliability record (on-time, late, missed, streaks) across every circle it joins, so people can vet each other before they commit.
-- **No custody.** Funds sit in program-owned vaults. There are no admin keys and no backend that can touch money.
-- **Seeker-native.** Signing goes through Mobile Wallet Adapter and the Seed Vault. Identity shows as a .skr name with a Genesis Token badge. Circles can be denominated in USDC or SKR.
+## What makes it different
 
-## Repo layout
+- **Bonds.** Every member locks a bond when joining. If a payment is missed, the bond pays that member's share, so the pot still goes out on time.
+- **Kin Score.** Each wallet has an on-chain record of on-time, late and missed payments, shared across every circle it joins. You can see how reliable someone is before you sit down with them.
+- **No custody.** Money sits in program-owned vaults. There are no admin keys and no server that can move funds.
+- **Built for the phone.** Android app that signs through Mobile Wallet Adapter, so on a Seeker every payment is approved in the Seed Vault.
 
-| Path | What |
-|---|---|
-| `programs/kin` | Anchor program: circles, members, bonds, score |
-| `tests` | Program tests (localnet) |
-| `app` | Android app (Kotlin, Jetpack Compose, Mobile Wallet Adapter) |
+## Repository
+
+- `programs/kin`: the Anchor program (circles, members, bonds, score)
+- `tests`: program tests that run on a local validator
+- `app`: the Android app (Kotlin, Jetpack Compose, Mobile Wallet Adapter)
+- `scripts`: devnet helpers, including a demo token and wallet funding
 
 ## On-chain program
 
@@ -23,22 +24,28 @@ Devnet program ID: `7CGtKBZVMKgWJRg92SmRiQkeQe8hvTV3SWrHRfsdSMWe`
 
 Instructions: `create_circle`, `join_circle`, `contribute`, `cover_missed`, `payout`, `claim_bond`, `refund_open`.
 
-Rules enforced by the program:
-- Payout order is join order. Each round runs for `period` seconds, plus a `grace` window for late payments.
-- After the grace window anyone can call `cover_missed`; the missing member's bond pays their share and their score drops.
-- After the period ends and every member is paid or covered, anyone can call `payout`; the pot goes to that round's recipient.
-- When the circle completes, each member reclaims any unused bond with `claim_bond`.
-- If an open circle never fills within 14 days, members reclaim their bonds with `refund_open`.
+Rules the program enforces:
 
-Limits (stated plainly): a bond covers a bounded number of missed payments, so it reduces default risk but does not eliminate it. A per-round pot cap is enforced while the program is young.
+- Payout order is join order. A round lasts `period` seconds, followed by a `grace` window for late payments.
+- After the grace window, anyone can call `cover_missed`. The missing member's bond pays their share and their score takes the hit.
+- Once the period has ended and every member is paid or covered, anyone can call `payout`, and the pot goes to that round's recipient.
+- When the circle finishes, each member takes back whatever bond was not used, with `claim_bond`.
+- If an open circle does not fill within 14 days, members take their bonds back with `refund_open`.
 
-## Build
+Known limits: a bond covers a limited number of missed payments, so it reduces default risk without removing it. The size of one round's pot is capped while the program is young.
+
+## Build and test
+
+Program (Linux or WSL, Anchor 0.31.1):
 
 ```bash
-# program (Linux/WSL)
 anchor build
 anchor test
+```
 
-# app
-cd app && ./gradlew assembleDebug
+App (JDK 17 and the Android SDK):
+
+```bash
+cd app
+./gradlew testDebugUnitTest assembleDebug
 ```
