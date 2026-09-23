@@ -38,6 +38,9 @@ class WalletSession(private val sender: ActivityResultSender) {
             is TransactionResult.Success -> {
                 val key = PublicKey(r.authResult.accounts.first().publicKey)
                 account = key
+                // Without this, every later transact() starts a brand-new authorization instead of
+                // reusing this approved session, which some wallets and OEM Android builds reject.
+                adapter.authToken = r.authResult.authToken
                 WalletResult.Ok(key)
             }
             is TransactionResult.NoWalletFound -> WalletResult.NoWallet
@@ -48,6 +51,7 @@ class WalletSession(private val sender: ActivityResultSender) {
     suspend fun signAndSend(unsignedTx: ByteArray): WalletResult<String> {
         val result = adapter.transact(sender) { authResult ->
             account = PublicKey(authResult.accounts.first().publicKey)
+            adapter.authToken = authResult.authToken
             signAndSendTransactions(arrayOf(unsignedTx))
         }
         return when (result) {
@@ -56,11 +60,19 @@ class WalletSession(private val sender: ActivityResultSender) {
                 if (sig == null) WalletResult.Error("Wallet returned no signature") else WalletResult.Ok(Base58.encode(sig))
             }
             is TransactionResult.NoWalletFound -> WalletResult.NoWallet
-            is TransactionResult.Failure -> WalletResult.Error(result.e.message ?: "Signing failed")
+            is TransactionResult.Failure -> {
+                // A stale or rejected auth token is the likely cause of an authorization failure.
+                // Clearing it means the next attempt starts a fresh authorization instead of repeating it.
+                if (result.e.message?.contains("authoriz", ignoreCase = true) == true) {
+                    adapter.authToken = null
+                }
+                WalletResult.Error(result.e.message ?: "Signing failed")
+            }
         }
     }
 
     fun disconnect() {
         account = null
+        adapter.authToken = null
     }
 }
