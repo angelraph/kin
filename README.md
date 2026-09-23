@@ -20,6 +20,14 @@ Money sits in program-owned vaults. There are no admin keys and no server that c
 - **Program tests.** Run `anchor test` for 23 on-chain scenarios on a local validator, and `cargo test -p kin --lib` for the pure logic (shuffle and Seeker token check).
 - **App tests.** Run `./gradlew testDebugUnitTest` in `app`. The Kotlin client is checked against values produced independently by the JavaScript client, including PDAs, token addresses, instruction discriminators and the shuffle.
 - **In the app.** Open any circle and tap "Check on-chain" under "Proof on Solana". It reads vault balances, recomputes the payout order from the stored seed, and lists the circle's real transactions with links to the Solana Explorer.
+- **Verified build.** `solana-verify build` reproduces the exact bytes deployed on devnet. Running it yourself and comparing the hash to the deployed program should print the same value on both sides:
+
+  ```bash
+  solana-verify build --library-name kin
+  solana-verify get-executable-hash target/deploy/kin.so
+  solana-verify get-program-hash -u https://api.devnet.solana.com 7CGtKBZVMKgWJRg92SmRiQkeQe8hvTV3SWrHRfsdSMWe
+  # both hashes: 65d5423a6d2e0237a3392854efbc7d551d0f09e04cf257cd7567c9e104243b73
+  ```
 
 ## Repository
 
