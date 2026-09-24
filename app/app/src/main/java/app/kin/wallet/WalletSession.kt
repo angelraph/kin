@@ -22,9 +22,17 @@ sealed interface WalletResult<out T> {
 /** Mobile Wallet Adapter's ERROR_AUTHORIZATION_FAILED. Wallets send it when they refuse an auth token. */
 private const val ERROR_AUTHORIZATION_FAILED = -1
 
-/** True when the wallet rejected the request because it did not accept our authorization. */
-internal fun isAuthorizationFailure(e: Exception): Boolean =
-    e is JsonRpc20Client.JsonRpc20RemoteException && e.code == ERROR_AUTHORIZATION_FAILED
+/**
+ * True when the wallet rejected the request because it did not accept our authorization.
+ * The library hands back the remote error wrapped inside an ExecutionException, so the whole
+ * cause chain is checked, not just the outermost exception.
+ */
+internal fun isAuthorizationFailure(e: Throwable): Boolean =
+    generateSequence(e) { it.cause }
+        .take(MAX_CAUSE_DEPTH)
+        .any { it is JsonRpc20Client.JsonRpc20RemoteException && it.code == ERROR_AUTHORIZATION_FAILED }
+
+private const val MAX_CAUSE_DEPTH = 8
 
 /**
  * Talks to the user's wallet app through Mobile Wallet Adapter.
