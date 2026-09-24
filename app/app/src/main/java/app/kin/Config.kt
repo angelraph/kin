@@ -29,5 +29,12 @@ object Config {
     const val COMPUTE_UNIT_LIMIT = 300_000
     const val PRIORITY_MICRO_LAMPORTS = 2_000L
     const val IDENTITY_NAME = "Kin"
-    const val IDENTITY_URI = "https://kin.app"
+
+    /**
+     * The web identity wallets show and verify. Mobile Wallet Adapter wallets fetch
+     * /.well-known/assetlinks.json here and only authorize an app whose package and signing certificate
+     * are listed in it. The file is served from the angelraph.github.io repository. When the app is
+     * signed with a release key, add that key's SHA-256 fingerprint to the file alongside the debug one.
+     */
+    const val IDENTITY_URI = "https://angelraph.github.io"
 }
