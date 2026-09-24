@@ -5,16 +5,26 @@ import app.kin.Config
 import app.kin.solana.Base58
 import app.kin.solana.PublicKey
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
+import com.solana.mobilewalletadapter.clientlib.AdapterOperations
 import com.solana.mobilewalletadapter.clientlib.ConnectionIdentity
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
 import com.solana.mobilewalletadapter.clientlib.Solana
 import com.solana.mobilewalletadapter.clientlib.TransactionResult
+import com.solana.mobilewalletadapter.clientlib.protocol.JsonRpc20Client
+import com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient.AuthorizationResult
 
 sealed interface WalletResult<out T> {
     data class Ok<T>(val value: T) : WalletResult<T>
     data class Error(val message: String) : WalletResult<Nothing>
     data object NoWallet : WalletResult<Nothing>
 }
+
+/** Mobile Wallet Adapter's ERROR_AUTHORIZATION_FAILED. Wallets send it when they refuse an auth token. */
+private const val ERROR_AUTHORIZATION_FAILED = -1
+
+/** True when the wallet rejected the request because it did not accept our authorization. */
+internal fun isAuthorizationFailure(e: Exception): Boolean =
+    e is JsonRpc20Client.JsonRpc20RemoteException && e.code == ERROR_AUTHORIZATION_FAILED
 
 /**
  * Talks to the user's wallet app through Mobile Wallet Adapter.
@@ -38,20 +48,33 @@ class WalletSession(private val sender: ActivityResultSender) {
             is TransactionResult.Success -> {
                 val key = PublicKey(r.authResult.accounts.first().publicKey)
                 account = key
-                // Without this, every later transact() starts a brand-new authorization instead of
-                // reusing this approved session, which some wallets and OEM Android builds reject.
-                adapter.authToken = r.authResult.authToken
                 WalletResult.Ok(key)
             }
             is TransactionResult.NoWalletFound -> WalletResult.NoWallet
             is TransactionResult.Failure -> WalletResult.Error(r.e.message ?: "Could not connect to wallet")
         }
 
+    /**
+     * Runs [block] against the wallet. The adapter remembers the auth token from the first call and
+     * uses it to *reauthorize* on every later call. Some wallets, Phantom included, refuse that with
+     * ERROR_AUTHORIZATION_FAILED. The protocol says the app should then drop the token and authorize
+     * from scratch, which the library does not do for us, so it is done here, once.
+     */
+    private suspend fun <T> transactWithFreshAuthFallback(
+        block: suspend AdapterOperations.(authResult: AuthorizationResult) -> T,
+    ): TransactionResult<T> {
+        val first = adapter.transact(sender, null, block)
+        if (first is TransactionResult.Failure && isAuthorizationFailure(first.e)) {
+            adapter.authToken = null
+            return adapter.transact(sender, null, block)
+        }
+        return first
+    }
+
     /** Asks the wallet to sign and submit an unsigned serialized transaction; returns the signature. */
     suspend fun signAndSend(unsignedTx: ByteArray): WalletResult<String> {
-        val result = adapter.transact(sender) { authResult ->
+        val result = transactWithFreshAuthFallback { authResult ->
             account = PublicKey(authResult.accounts.first().publicKey)
-            adapter.authToken = authResult.authToken
             signAndSendTransactions(arrayOf(unsignedTx))
         }
         return when (result) {
@@ -61,12 +84,12 @@ class WalletSession(private val sender: ActivityResultSender) {
             }
             is TransactionResult.NoWalletFound -> WalletResult.NoWallet
             is TransactionResult.Failure -> {
-                // A stale or rejected auth token is the likely cause of an authorization failure.
-                // Clearing it means the next attempt starts a fresh authorization instead of repeating it.
-                if (result.e.message?.contains("authoriz", ignoreCase = true) == true) {
+                if (isAuthorizationFailure(result.e)) {
                     adapter.authToken = null
+                    WalletResult.Error("The wallet would not authorize Kin. Open your wallet, check that Testnet Mode is on, and try again.")
+                } else {
+                    WalletResult.Error(result.e.message ?: "Signing failed")
                 }
-                WalletResult.Error(result.e.message ?: "Signing failed")
             }
         }
     }
