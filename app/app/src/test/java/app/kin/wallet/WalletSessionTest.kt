@@ -36,6 +36,15 @@ class WalletSessionTest {
     }
 
     @Test
+    fun aFailureIsNeverBlank() {
+        val timeout = ExecutionException(java.util.concurrent.TimeoutException())
+        val text = describeFailure("Timed out while waiting for result", timeout)
+        assertTrue(text.startsWith("Timed out while waiting for result"))
+        assertTrue("names the underlying error even when it has no message", text.contains("TimeoutException"))
+        assertTrue(describeFailure("", IllegalStateException()).isNotBlank())
+    }
+
+    @Test
     fun aCauseLoopCannotHangTheCheck() {
         val a = RuntimeException("a")
         val b = RuntimeException("b", a)

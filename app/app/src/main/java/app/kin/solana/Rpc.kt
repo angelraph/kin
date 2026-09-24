@@ -67,6 +67,28 @@ class SolanaRpc(private val url: String) {
         return Base58.decode(r.jsonObject["value"]!!.jsonObject["blockhash"]!!.jsonPrimitive.content)
     }
 
+    /**
+     * Submits a signed transaction and returns its signature. Preflight is on, so a transaction the
+     * network would reject fails here with the network's own explanation.
+     */
+    suspend fun sendTransaction(signedTx: ByteArray): String {
+        val r = call(
+            "sendTransaction",
+            buildJsonArray {
+                add(java.util.Base64.getEncoder().encodeToString(signedTx))
+                add(
+                    buildJsonObject {
+                        put("encoding", "base64")
+                        put("skipPreflight", false)
+                        put("preflightCommitment", "confirmed")
+                        put("maxRetries", 5)
+                    },
+                )
+            },
+        )
+        return r.jsonPrimitive.content
+    }
+
     suspend fun accountInfo(address: PublicKey): AccountInfo? {
         val r = call(
             "getAccountInfo",

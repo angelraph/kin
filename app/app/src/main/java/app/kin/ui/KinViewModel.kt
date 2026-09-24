@@ -13,6 +13,7 @@ import app.kin.solana.KinProgram
 import app.kin.solana.KinRepository
 import app.kin.solana.MemberData
 import app.kin.solana.PublicKey
+import app.kin.solana.RpcException
 import app.kin.solana.ScoreData
 import app.kin.solana.SgtProof
 import app.kin.solana.SolanaRpc
@@ -277,11 +278,18 @@ class KinViewModel : ViewModel() {
             TokenInstructions.computeUnitLimit(Config.COMPUTE_UNIT_LIMIT),
             TokenInstructions.computeUnitPrice(Config.PRIORITY_MICRO_LAMPORTS),
         )
-        val tx = Transaction.buildUnsigned(wallet, rpc.latestBlockhash(), budget + ixs)
-        when (val r = session!!.signAndSend(tx)) {
+        // The transaction is built after the wallet authorizes, so its blockhash is fresh when signed.
+        val signed = session!!.sign { Transaction.buildUnsigned(wallet, rpc.latestBlockhash(), budget + ixs) }
+        when (signed) {
             is WalletResult.Ok -> {
-                _state.update { it.copy(lastSignature = r.value) }
-                if (repo.waitForConfirmation(r.value)) {
+                val signature = try {
+                    rpc.sendTransaction(signed.value)
+                } catch (e: RpcException) {
+                    notify("The network rejected the transaction: ${e.message}")
+                    return
+                }
+                _state.update { it.copy(lastSignature = signature) }
+                if (repo.waitForConfirmation(signature)) {
                     notify(success)
                     after()
                 } else {
@@ -289,7 +297,7 @@ class KinViewModel : ViewModel() {
                 }
             }
             is WalletResult.NoWallet -> notify("No wallet app found")
-            is WalletResult.Error -> notify(r.message)
+            is WalletResult.Error -> notify(signed.message)
         }
     }
 

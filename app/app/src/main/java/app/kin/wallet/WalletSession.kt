@@ -1,8 +1,8 @@
 package app.kin.wallet
 
 import android.net.Uri
+import android.util.Log
 import app.kin.Config
-import app.kin.solana.Base58
 import app.kin.solana.PublicKey
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 import com.solana.mobilewalletadapter.clientlib.AdapterOperations
@@ -33,6 +33,21 @@ internal fun isAuthorizationFailure(e: Throwable): Boolean =
         .any { it is JsonRpc20Client.JsonRpc20RemoteException && it.code == ERROR_AUTHORIZATION_FAILED }
 
 private const val MAX_CAUSE_DEPTH = 8
+
+private const val TAG = "KinWallet"
+
+/**
+ * A readable reason for a failed wallet request. The library's own description comes first
+ * ("Timed out while waiting for result"), then the underlying errors, so a failure is never a blank.
+ */
+internal fun describeFailure(libraryMessage: String, e: Throwable): String {
+    val causes = generateSequence(e) { it.cause }
+        .take(MAX_CAUSE_DEPTH)
+        .mapNotNull { c -> c.message?.takeIf { it.isNotBlank() }?.let { "${c.javaClass.simpleName}: $it" } ?: c.javaClass.simpleName }
+        .distinct()
+        .toList()
+    return (listOf(libraryMessage.ifBlank { "Wallet request failed" }) + causes).joinToString(" | ")
+}
 
 /**
  * Talks to the user's wallet app through Mobile Wallet Adapter.
@@ -79,16 +94,23 @@ class WalletSession(private val sender: ActivityResultSender) {
         return first
     }
 
-    /** Asks the wallet to sign and submit an unsigned serialized transaction; returns the signature. */
-    suspend fun signAndSend(unsignedTx: ByteArray): WalletResult<String> {
+    /**
+     * Asks the wallet to sign a transaction and returns the signed bytes. The wallet only signs; Kin
+     * submits the transaction itself, so a wallet that cannot broadcast on devnet cannot stall it, and
+     * network errors come back with their real message.
+     *
+     * [buildTx] runs after the wallet has authorized, so the blockhash is fresh when it is signed even if
+     * the user took a while to approve the connection.
+     */
+    suspend fun sign(buildTx: suspend () -> ByteArray): WalletResult<ByteArray> {
         val result = transactWithFreshAuthFallback { authResult ->
             account = PublicKey(authResult.accounts.first().publicKey)
-            signAndSendTransactions(arrayOf(unsignedTx))
+            signTransactions(arrayOf(buildTx())).signedPayloads
         }
         return when (result) {
             is TransactionResult.Success -> {
-                val sig = result.payload.signatures.firstOrNull()
-                if (sig == null) WalletResult.Error("Wallet returned no signature") else WalletResult.Ok(Base58.encode(sig))
+                val signed = result.payload.firstOrNull()
+                if (signed == null || signed.isEmpty()) WalletResult.Error("Wallet returned no signed transaction") else WalletResult.Ok(signed)
             }
             is TransactionResult.NoWalletFound -> WalletResult.NoWallet
             is TransactionResult.Failure -> {
@@ -96,7 +118,8 @@ class WalletSession(private val sender: ActivityResultSender) {
                     adapter.authToken = null
                     WalletResult.Error("The wallet would not authorize Kin. Open your wallet, check that Testnet Mode is on, and try again.")
                 } else {
-                    WalletResult.Error(result.e.message ?: "Signing failed")
+                    Log.w(TAG, "sign failed: ${result.message}", result.e)
+                    WalletResult.Error(describeFailure(result.message, result.e))
                 }
             }
         }
