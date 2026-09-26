@@ -812,6 +812,9 @@ private fun DetailScreen(state: UiState, detail: CircleDetail, actions: Actions)
             item { CalendarCard(c, detail.members, me, now) }
 
             item { KinLabel("Members") }
+            if (detail.members.isEmpty()) {
+                item { Text("No one has joined yet.", style = MaterialTheme.typography.bodyMedium, color = KinColors.Slate) }
+            }
             items(detail.members, key = { it.address.toBase58() }) { m ->
                 MemberRow(c, m, m.wallet == me, detail.scores[m.wallet])
             }
@@ -823,12 +826,26 @@ private fun DetailScreen(state: UiState, detail: CircleDetail, actions: Actions)
 
 @Composable
 private fun CalendarCard(c: CircleData, members: List<MemberData>, me: PublicKey, now: Long) {
+    if (c.status == CircleStatus.Open) {
+        // Nothing to list until the circle fills and the order exists, so say that once.
+        PaperCard {
+            Text("Not drawn yet", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                if (c.randomize) "When the circle fills, the payout order is drawn from on-chain data. Then each of the ${c.maxMembers} rounds shows who is paid and when."
+                else "When the circle fills, members are paid in the order they joined. Then each of the ${c.maxMembers} rounds shows who is paid and when.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = KinColors.Slate,
+            )
+        }
+        return
+    }
     val rows = Schedule.rows(c)
     PaperCard(padding = 4.dp) {
         rows.forEachIndexed { i, row ->
             val member = row.memberIndex?.let { idx -> members.firstOrNull { it.index == idx } }
             val who = when {
-                member == null -> "Order set when the circle fills"
+                member == null -> "Member ${row.memberIndex?.plus(1) ?: ""}".trim()
                 member.wallet == me -> "You"
                 else -> shortKey(member.wallet)
             }
