@@ -81,6 +81,7 @@ class MainActivity : ComponentActivity() {
             onShareScore = ::shareScore,
             onLookup = vm::lookupWallet,
             onGetTestFunds = vm::getTestFunds,
+            onCancelBusy = vm::cancelBusy,
             onSetAutopay = vm::setAutopay,
             onCollect = vm::collectDue,
             onLoadProof = vm::loadProof,

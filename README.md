@@ -12,6 +12,8 @@ A circle is a group that pays a fixed amount every round. Each round, one member
 4. **Connect and get funds.** Tap Connect wallet, open the You tab and tap "Get test funds". One signature gives you 500 test tokens and, if your wallet is nearly empty, a little SOL for network fees.
 5. **Run a circle.** On the Circles tab tap New circle and choose "One minute test run". Share the invite link to a second phone to fill the circle, or run the friend helper (`node scripts/demo-friend.js`, see the top of that file) to play the other members from a computer.
 
+Phantom may also show a red notice that the app's identity could not be verified. It appears for both the debug and the release build, even though Google's Digital Asset Links checker reports Kin's package and both signing keys as linked to ngelraph.github.io and Android reports the domain as verified for the app, so it comes from Phantom's side. Tap Connect to continue. Wallets that follow the Mobile Wallet Adapter specification, such as the Seed Vault Wallet on a Seeker, verify against the same file.
+
 The wallet may show "Failed to simulate the results of this request" on devnet. That is the wallet's own simulator, which does not cover devnet. The transaction itself is valid and the same flow simulates normally on mainnet.
 
 ## The problems Kin solves, and how

@@ -22,6 +22,8 @@ import app.kin.solana.TokenInstructions
 import app.kin.solana.Transaction
 import app.kin.wallet.WalletResult
 import app.kin.wallet.WalletSession
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -341,15 +343,26 @@ class KinViewModel : ViewModel() {
         }
     }
 
-    private fun launchBusy(block: suspend () -> Unit) = viewModelScope.launch {
+    private var busyJob: Job? = null
+
+    private fun launchBusy(block: suspend () -> Unit): Job = viewModelScope.launch {
         _state.update { it.copy(busy = true) }
         try {
             block()
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             notify(e.message ?: "Something went wrong")
         } finally {
             _state.update { it.copy(busy = false) }
         }
+    }.also { busyJob = it }
+
+    /** Lets the user leave a request that is waiting on the wallet, for example after switching apps mid-way. */
+    fun cancelBusy() {
+        busyJob?.cancel()
+        busyJob = null
+        _state.update { it.copy(busy = false, notice = "Cancelled") }
     }
 
     private fun notify(msg: String) = _state.update { it.copy(notice = msg) }

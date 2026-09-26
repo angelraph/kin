@@ -56,7 +56,7 @@ fun AutopayCard(circle: CircleData, member: MemberData, allowance: app.kin.solan
     CloudCard {
         ToggleRow(
             "Autopay",
-            if (on) "Kin can collect up to ${formatAmount(allowance!!.amount)} from you, only into this circle. Turn it off any time."
+            if (on) "Kin can collect up to ${formatAmount(minOf(allowance!!.amount, remaining))} from you for this circle, and nothing else. Turn it off any time."
             else "Never miss a round. Allows collecting up to ${formatAmount(remaining)}, your remaining dues here, and nothing else.",
             on,
             onChange,

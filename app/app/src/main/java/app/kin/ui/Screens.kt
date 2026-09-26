@@ -96,6 +96,7 @@ class Actions(
     val onDismissNotice: () -> Unit,
     val onLookup: (String) -> Unit,
     val onGetTestFunds: () -> Unit,
+    val onCancelBusy: () -> Unit,
 )
 
 /** Whether the user wants reminders, and whether the system currently lets Kin show notifications. */
@@ -195,6 +196,8 @@ fun KinApp(state: UiState, actions: Actions, reminders: Reminders) {
                         CircularProgressIndicator(color = KinColors.Aqua, strokeWidth = 3.dp, modifier = Modifier.size(28.dp))
                         Spacer(Modifier.height(12.dp))
                         Text("Working on it", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                        Spacer(Modifier.height(4.dp))
+                        QuietButton("Cancel", actions.onCancelBusy, color = Color.White.copy(alpha = 0.7f))
                     }
                 }
             }

@@ -39,6 +39,15 @@
                 <data android:host="join" />
                 <data android:host="circle" />
             </intent-filter>
+            <!-- Verified web links for the identity domain, so wallets can confirm this app owns it -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="angelraph.github.io" />
+                <data android:pathPrefix="/kin/" />
+            </intent-filter>
         </activity>
     </application>
 </manifest>
