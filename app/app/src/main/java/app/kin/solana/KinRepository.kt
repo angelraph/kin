@@ -35,7 +35,11 @@ class KinRepository(private val rpc: SolanaRpc) {
         return KinProgram.decodeCircle(address, acc.data)
     }
 
-    /** Circles the wallet has joined (found via its Member accounts). */
+    /**
+     * Circles the wallet belongs to: the ones it joined (found via its Member accounts) and the ones it
+     * created. A creator has no Member account until it joins, and its own circle must not disappear
+     * from its list in the meantime.
+     */
     suspend fun circlesFor(wallet: PublicKey): List<CircleData> {
         val members = rpc.programAccounts(
             KinProgram.PROGRAM_ID,
@@ -45,9 +49,22 @@ class KinRepository(private val rpc: SolanaRpc) {
             ),
         ).map { KinProgram.decodeMember(it.address, it.data) }
         val addresses = members.map { it.circle }.distinct()
-        return rpc.multipleAccounts(addresses)
+        val joined = rpc.multipleAccounts(addresses)
             .mapIndexedNotNull { i, acc -> acc?.let { KinProgram.decodeCircle(addresses[i], it.data) } }
-            .sortedByDescending { it.createdTs }
+        val created = rpc.programAccounts(
+            KinProgram.PROGRAM_ID,
+            listOf(
+                0 to KinProgram.accountDiscriminator("Circle"),
+                8 to wallet.bytes, // Circle.creator
+            ),
+        ).map { KinProgram.decodeCircle(it.address, it.data) }
+        return mergeCircles(joined, created)
+    }
+
+    companion object {
+        /** One entry per circle, newest first. */
+        fun mergeCircles(joined: List<CircleData>, created: List<CircleData>): List<CircleData> =
+            (joined + created).distinctBy { it.address }.sortedByDescending { it.createdTs }
     }
 
     suspend fun members(circle: PublicKey): List<MemberData> = rpc.programAccounts(

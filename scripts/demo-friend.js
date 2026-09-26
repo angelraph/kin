@@ -5,6 +5,7 @@
 //   node scripts/demo-friend.js status <circle>      -> circle state, members and timings
 //   node scripts/demo-friend.js join <circle>        -> friend locks the bond and takes a seat
 //   node scripts/demo-friend.js pay <circle>         -> friend pays this round's contribution
+//   node scripts/demo-friend.js collect <circle> <wallet> -> collect a member's autopay contribution
 //   node scripts/demo-friend.js cover <circle> <wallet>  -> cover a member who missed the window
 //   node scripts/demo-friend.js payout <circle>      -> send the round's pot to its recipient
 //
@@ -97,6 +98,14 @@ async function status(circleKey) {
       walletToken: ata(friend.publicKey), vault: vault(circleKey), tokenProgram: TOKEN_PROGRAM_ID,
     }).rpc();
     console.log("paid:", sig);
+  } else if (cmd === "collect") {
+    // Pulls one contribution from a member who turned autopay on. Anyone can do this for them.
+    const target = new PublicKey(arg2);
+    const sig = await program.methods.collect().accountsPartial({
+      caller: friend.publicKey, circle: circleKey, member: member(circleKey, target), score: score(target),
+      memberToken: ata(target), vault: vault(circleKey), autopay: pda([Buffer.from("autopay")]), tokenProgram: TOKEN_PROGRAM_ID,
+    }).rpc();
+    console.log("collected by autopay:", sig);
   } else if (cmd === "cover") {
     const target = new PublicKey(arg2);
     const sig = await program.methods.coverMissed().accountsPartial({

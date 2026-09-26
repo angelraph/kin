@@ -180,6 +180,12 @@ class KinViewModel : ViewModel() {
             notify("Circle not found on ${Config.CLUSTER_LABEL}")
             return@launchBusy
         }
+        // Joining twice would only be rejected by the network with a confusing message.
+        if (repo.members(address).any { it.wallet == wallet }) {
+            notify("You are already in this circle.")
+            loadDetail(address)
+            return@launchBusy
+        }
         var sgt: SgtProof? = null
         if (circle.seekerOnly) {
             sgt = repo.findSeekerToken(wallet, circle.seekerAuthority)
