@@ -6,9 +6,11 @@ skip-lint = false
 
 [programs.localnet]
 kin = "7CGtKBZVMKgWJRg92SmRiQkeQe8hvTV3SWrHRfsdSMWe"
+kin_faucet = "G5MhE85BTiTqLPinKZBg7jh4sNMyTc7WUvGcfMerWsig"
 
 [programs.devnet]
 kin = "7CGtKBZVMKgWJRg92SmRiQkeQe8hvTV3SWrHRfsdSMWe"
+kin_faucet = "G5MhE85BTiTqLPinKZBg7jh4sNMyTc7WUvGcfMerWsig"
 
 [registry]
 url = "https://api.apr.dev"
