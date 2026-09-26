@@ -35,6 +35,26 @@ fun formatDuration(totalSeconds: Long): String {
     }
 }
 
+/** How long a whole circle runs, e.g. "5 weeks", given how many rounds it has and how long each lasts. */
+fun spanLabel(rounds: Int, periodSecs: Long): String {
+    val unit = when {
+        periodSecs % 2_592_000L == 0L -> "month"
+        periodSecs % 604_800L == 0L -> "week"
+        periodSecs % 86_400L == 0L -> "day"
+        periodSecs % 60L == 0L -> "minute"
+        else -> null
+    }
+    if (unit == null) return formatDuration(rounds * periodSecs)
+    val divisor = when (unit) {
+        "month" -> 2_592_000L
+        "week" -> 604_800L
+        "day" -> 86_400L
+        else -> 60L
+    }
+    val count = rounds * (periodSecs / divisor)
+    return if (count == 1L) "1 $unit" else "$count ${unit}s"
+}
+
 fun periodLabel(seconds: Long): String = when {
     seconds % 2_592_000L == 0L -> "monthly"
     seconds % 604_800L == 0L -> "weekly"

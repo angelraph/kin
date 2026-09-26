@@ -5,7 +5,9 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.graphics.Color
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,6 +19,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import app.kin.solana.CircleData
 import app.kin.solana.PublicKey
+import app.kin.solana.ScoreData
 import app.kin.ui.Actions
 import app.kin.ui.KinApp
 import app.kin.ui.KinTheme
@@ -44,7 +47,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // The design is light, so keep dark status and navigation icons whatever the system theme is.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
+        )
         prefs = KinPrefs(this)
         remindersOn = prefs.remindersEnabled
         notificationsAllowed = Notifier.canPost(this)
@@ -71,6 +78,9 @@ class MainActivity : ComponentActivity() {
             onClaim = vm::claimBond,
             onJoin = vm::joinCircle,
             onShare = ::shareInvite,
+            onShareScore = ::shareScore,
+            onLookup = vm::lookupWallet,
+            onGetTestFunds = vm::getTestFunds,
             onSetAutopay = vm::setAutopay,
             onCollect = vm::collectDue,
             onLoadProof = vm::loadProof,
@@ -141,6 +151,21 @@ class MainActivity : ComponentActivity() {
             putExtra(Intent.EXTRA_TEXT, "Join my Kin circle \"${c.name}\": $link")
         }
         startActivity(Intent.createChooser(send, "Invite to circle"))
+    }
+
+    private fun shareScore(score: ScoreData?) {
+        val pct = score?.reliabilityPercent
+        val text = if (pct == null || score == null) {
+            "I am on Kin, a savings circle on Solana where every payment builds a public reliability score."
+        } else {
+            "My Kin Score is $pct. ${score.onTime} payments on time, ${score.missed} missed, ${score.circlesCompleted} circles completed. " +
+                "It is recorded on Solana, so anyone can check it."
+        }
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, text)
+        }
+        startActivity(Intent.createChooser(send, "Share my Kin Score"))
     }
 
     /** Reads kin://join/CIRCLE (invites) and kin://circle/CIRCLE (notification taps). */

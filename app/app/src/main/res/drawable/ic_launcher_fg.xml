@@ -4,12 +4,13 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Three linked dots: a circle of people -->
-    <path android:fillColor="#FFFFFF" android:pathData="M54,30m-9,0a9,9 0,1 1,18 0a9,9 0,1 1,-18 0" />
-    <path android:fillColor="#FFFFFF" android:pathData="M36,64m-9,0a9,9 0,1 1,18 0a9,9 0,1 1,-18 0" />
-    <path android:fillColor="#FFFFFF" android:pathData="M72,64m-9,0a9,9 0,1 1,18 0a9,9 0,1 1,-18 0" />
+    <!-- Three linked dots: a circle of people. The top one is the aqua signal. -->
     <path
         android:strokeColor="#FFFFFF"
         android:strokeWidth="3"
-        android:pathData="M54,39L38,56M54,39L70,56M45,64L63,64" />
+        android:strokeLineCap="round"
+        android:pathData="M54,36L38,64M54,36L70,64M38,64L70,64" />
+    <path android:fillColor="#94FAF0" android:pathData="M54,36m-9,0a9,9 0,1 1,18 0a9,9 0,1 1,-18 0" />
+    <path android:fillColor="#FFFFFF" android:pathData="M38,64m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0" />
+    <path android:fillColor="#FFFFFF" android:pathData="M70,64m-8,0a8,8 0,1 1,16 0a8,8 0,1 1,-16 0" />
 </vector>

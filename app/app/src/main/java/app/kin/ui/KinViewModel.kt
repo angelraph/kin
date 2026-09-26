@@ -7,6 +7,7 @@ import app.kin.solana.ActivityItem
 import app.kin.solana.Allowance
 import app.kin.solana.CircleData
 import app.kin.solana.CircleStatus
+import app.kin.solana.FaucetProgram
 import app.kin.solana.FundsProof
 import app.kin.solana.Instruction
 import app.kin.solana.KinProgram
@@ -41,7 +42,16 @@ data class CircleDetail(
     val proof: ProofState? = null,
 )
 
+/** Result of checking someone else's Kin Score. */
+data class LookupState(
+    val address: PublicKey? = null,
+    val score: ScoreData? = null,
+    val loading: Boolean = false,
+    val invalid: Boolean = false,
+)
+
 data class UiState(
+    val lookup: LookupState? = null,
     val wallet: PublicKey? = null,
     val circles: List<CircleData> = emptyList(),
     val myScore: ScoreData? = null,
@@ -112,6 +122,21 @@ class KinViewModel : ViewModel() {
         val wallet = _state.value.wallet ?: return
         val sgt = runCatching { repo.findSeekerToken(wallet, Config.SEEKER_AUTHORITY) }.getOrNull()
         _state.update { it.copy(seeker = sgt) }
+    }
+
+    /** Reads any wallet's Kin Score from the chain, so people can be vetted before they are invited. */
+    fun lookupWallet(text: String) {
+        val address = runCatching { PublicKey.fromBase58(text.trim()) }.getOrNull()
+        if (address == null) {
+            _state.update { it.copy(lookup = LookupState(invalid = true)) }
+            return
+        }
+        _state.update { it.copy(lookup = LookupState(address = address, loading = true)) }
+        viewModelScope.launch {
+            val score = runCatching { repo.score(address) }
+            score.onFailure { notify(it.message ?: "Could not read that wallet") }
+            _state.update { it.copy(lookup = LookupState(address = address, score = score.getOrNull())) }
+        }
     }
 
     fun openCircle(address: PublicKey) = launchBusy {
@@ -203,7 +228,16 @@ class KinViewModel : ViewModel() {
         }
     }
 
-    fun contribute() = detailAction("Payment sent") { w, c -> listOf(KinProgram.contribute(w, c)) }
+    /** One signature: a little SOL if the wallet is nearly empty, then 500 test tokens. Devnet only. */
+    fun getTestFunds() {
+        val wallet = _state.value.wallet ?: return
+        send(
+            listOf(FaucetProgram.refuel(wallet), FaucetProgram.claim(wallet, Config.MINT)),
+            "Test funds added: ${formatAmount(FAUCET_TOKENS)}",
+        ) { loadHome() }
+    }
+
+    fun contribute() =detailAction("Payment sent") { w, c -> listOf(KinProgram.contribute(w, c)) }
 
     fun claimBond() = detailAction("Bond returned") { w, c -> listOf(KinProgram.claimBond(w, c)) }
 
@@ -291,7 +325,7 @@ class KinViewModel : ViewModel() {
                 val signature = try {
                     rpc.sendTransaction(signed.value)
                 } catch (e: RpcException) {
-                    notify("The network rejected the transaction: ${e.message}")
+                    notify(FaucetProgram.explain(e.message) ?: "The network rejected the transaction: ${e.message}")
                     return
                 }
                 _state.update { it.copy(lastSignature = signature) }
@@ -323,5 +357,8 @@ class KinViewModel : ViewModel() {
     private companion object {
         /** Keeps a collection transaction well inside the size and compute limits. */
         const val MAX_COLLECT_PER_TX = 4
+
+        /** What one faucet claim pays out, in base units. Matches TOKENS_PER_CLAIM in the faucet program. */
+        const val FAUCET_TOKENS = 500_000_000L
     }
 }
