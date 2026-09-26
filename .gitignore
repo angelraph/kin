@@ -17,3 +17,5 @@ app/local.properties
 # devnet test keys
 scripts/.seeker-authority.json
 scripts/.demo-mint
+.friend-keypair.json
+scripts/.friend-keypair.json
