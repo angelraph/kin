@@ -67,7 +67,7 @@ import app.kin.solana.PublicKey
 import app.kin.solana.ScoreData
 import kotlinx.coroutines.delay
 
-private enum class Route { Home, Create, Simulate }
+private enum class Route { Home, Create, Simulate, Learn }
 
 private const val REFRESH_MILLIS = 12_000L
 private val ContentWidth = 600.dp
@@ -120,6 +120,13 @@ fun KinApp(state: UiState, actions: Actions, reminders: Reminders) {
     var tab by rememberSaveable { mutableStateOf(Tab.Circles) }
     var templateId by rememberSaveable { mutableStateOf<String?>(null) }
     val template = templateId?.let { Templates.byId(it) }
+    var learnName by rememberSaveable { mutableStateOf<String?>(null) }
+    val learnPage = learnName?.let { name -> LearnPage.entries.firstOrNull { it.name == name } }
+    val openLearn: (LearnPage) -> Unit = { learnName = it.name; route = Route.Learn }
+    // Connecting from a topic page or the simulation should land on the app, not back on the page.
+    LaunchedEffect(state.wallet) {
+        if (state.wallet != null && (route == Route.Learn || route == Route.Simulate)) route = Route.Home
+    }
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(state.notice) {
         state.notice?.let {
@@ -139,7 +146,9 @@ fun KinApp(state: UiState, actions: Actions, reminders: Reminders) {
             when {
                 state.wallet == null && route == Route.Simulate ->
                     SimulationScreen(onBack = { route = Route.Home }, onConnect = actions.onConnect)
-                state.wallet == null -> LandingScreen(state.busy, actions.onConnect) { route = Route.Simulate }
+                state.wallet == null && route == Route.Learn && learnPage != null ->
+                    LearnScreen(learnPage, connected = false, onBack = { route = Route.Home }, onConnect = actions.onConnect, onStart = {})
+                state.wallet == null -> LandingScreen(state.busy, actions.onConnect, onSimulate = { route = Route.Simulate }, onLearn = openLearn)
                 detail != null -> DetailScreen(state, detail, actions)
                 route == Route.Create -> CreateScreen(
                     template = template,
@@ -151,6 +160,10 @@ fun KinApp(state: UiState, actions: Actions, reminders: Reminders) {
                     },
                 )
                 route == Route.Simulate -> SimulationScreen(onBack = { route = Route.Home }, onConnect = null)
+                route == Route.Learn && learnPage != null -> LearnScreen(
+                    learnPage, connected = true, onBack = { route = Route.Home }, onConnect = {},
+                    onStart = { templateId = it.id; route = Route.Create },
+                )
                 else -> Column(Modifier.fillMaxSize()) {
                     Box(Modifier.weight(1f)) {
                         when (tab) {
@@ -161,8 +174,8 @@ fun KinApp(state: UiState, actions: Actions, reminders: Reminders) {
                             )
                             Tab.Discover -> DiscoverTab(
                                 state, actions,
-                                onPick = { templateId = it.id; route = Route.Create },
                                 onSimulate = { route = Route.Simulate },
+                                onLearn = openLearn,
                             )
                             Tab.You -> YouTab(state, actions, reminders)
                         }
@@ -349,7 +362,7 @@ private fun JoinDialog(onDismiss: () -> Unit, onSubmit: (String) -> Unit) {
 // Discover tab
 
 @Composable
-private fun DiscoverTab(state: UiState, actions: Actions, onPick: (CircleTemplate) -> Unit, onSimulate: () -> Unit) {
+private fun DiscoverTab(state: UiState, actions: Actions, onSimulate: () -> Unit, onLearn: (LearnPage) -> Unit) {
     var address by remember { mutableStateOf("") }
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -362,7 +375,7 @@ private fun DiscoverTab(state: UiState, actions: Actions, onPick: (CircleTemplat
                 Spacer(Modifier.height(16.dp))
                 Text("Discover", style = MaterialTheme.typography.headlineLarge)
                 Spacer(Modifier.height(4.dp))
-                Text("Ways to use a circle, and tools to trust the people in one.", style = MaterialTheme.typography.bodyMedium, color = KinColors.Slate)
+                Text("Tools to trust the people in a circle, and how Kin works.", style = MaterialTheme.typography.bodyMedium, color = KinColors.Slate)
             }
         }
         item {
@@ -398,14 +411,8 @@ private fun DiscoverTab(state: UiState, actions: Actions, onPick: (CircleTemplat
                 }
             }
         }
-        item { KinLabel("Use cases") }
-        item { UseCaseExplorer("Start this circle", onPick) }
-        item { KinLabel("Core features") }
-        item { CoreFeatures() }
-        item { KinLabel("Roadmap") }
-        item { Roadmap() }
-        item { KinLabel("FAQ") }
-        item { FaqList() }
+        item { KinLabel("Learn more") }
+        item { LearnList(onLearn) }
     }
 }
 

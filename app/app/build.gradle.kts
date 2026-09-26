@@ -5,6 +5,15 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+import java.util.Properties
+
+// The release key lives outside the repository. Point KIN_KEYSTORE_PROPERTIES at its properties file,
+// or keep it at ~/.kin/keystore.properties. Without it, the release build is simply left unsigned.
+val keystoreProps = Properties().apply {
+    val path = System.getenv("KIN_KEYSTORE_PROPERTIES") ?: "${System.getProperty("user.home")}/.kin/keystore.properties"
+    file(path).takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}
+
 android {
     namespace = "app.kin"
     compileSdk = 35
@@ -13,12 +22,24 @@ android {
         applicationId = "app.kin"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "0.2.0"
+    }
+
+    signingConfigs {
+        if (keystoreProps.containsKey("storeFile")) {
+            create("release") {
+                storeFile = file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
     }
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }

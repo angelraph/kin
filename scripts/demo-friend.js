@@ -9,8 +9,9 @@
 //   node scripts/demo-friend.js cover <circle> <wallet>  -> cover a member who missed the window
 //   node scripts/demo-friend.js payout <circle>      -> send the round's pot to its recipient
 //
-// The friend's key lives in scripts/.friend-keypair.json (git-ignored). Funding uses the devnet
-// deploy wallet at ~/.config/solana/id.json, which is also the test token's mint authority.
+// The friend's key lives in scripts/.friend-keypair.json (git-ignored). `fund` sends the friend some SOL from
+// the wallet at ~/.config/solana/id.json (any devnet wallet with a little SOL works), then the friend claims
+// test tokens from the faucet program exactly like the app does.
 const fs = require("fs");
 const os = require("os");
 const anchor = require("@coral-xyz/anchor");
@@ -18,9 +19,7 @@ const { Connection, Keypair, PublicKey, SystemProgram, SYSVAR_SLOT_HASHES_PUBKEY
 const {
   TOKEN_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
-  getOrCreateAssociatedTokenAccount,
   getAssociatedTokenAddressSync,
-  mintTo,
 } = require("@solana/spl-token");
 
 const MINT = new PublicKey(process.env.KIN_MINT || "3xicv3CvScBBpdsM1LBH1xbm1YNhUWFDhCDxosHEzZR5");
@@ -76,8 +75,9 @@ async function status(circleKey) {
       const tx = new Transaction().add(SystemProgram.transfer({ fromPubkey: payer.publicKey, toPubkey: friend.publicKey, lamports: 0.5e9 }));
       await anchor.web3.sendAndConfirmTransaction(conn, tx, [payer]);
     }
-    const acct = await getOrCreateAssociatedTokenAccount(conn, payer, MINT, friend.publicKey);
-    await mintTo(conn, payer, MINT, acct.address, payer, 500_000_000n);
+    const faucetIdl = JSON.parse(fs.readFileSync(`${__dirname}/../idl/kin_faucet.json`, "utf8"));
+    const faucet = new anchor.Program(faucetIdl, program.provider);
+    await faucet.methods.claim().accountsPartial({ user: friend.publicKey, mint: MINT }).rpc();
     return console.log(`friend ${friend.publicKey.toBase58()} funded: ${(await conn.getBalance(friend.publicKey)) / 1e9} SOL, 500 tUSDC added`);
   }
 

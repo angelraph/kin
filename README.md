@@ -4,6 +4,16 @@ Savings circles for people who trust each other, and protection for when someone
 
 A circle is a group that pays a fixed amount every round. Each round, one member receives the whole pot, until everyone has had a turn. It is how millions of people already save, usually on a notebook and a WhatsApp group. Kin puts it on Solana so nobody has to hold the money and nobody has to take anyone's word.
 
+## Try it in two minutes
+
+1. **Install.** Download `kin-0.2.0.apk` from the [latest release](https://github.com/angelraph/kin/releases/latest) and open it on any Android phone. Kin also runs fine on a Seeker.
+2. **See the idea first.** On the first screen tap "See a circle run, no wallet needed". It plays five people through five rounds locally, including a missed payment covered by a bond.
+3. **Set your wallet to devnet.** Kin works with any Mobile Wallet Adapter wallet. In Phantom: Settings, Developer Settings, turn on Testnet Mode, and choose Solana Devnet.
+4. **Connect and get funds.** Tap Connect wallet, open the You tab and tap "Get test funds". One signature gives you 500 test tokens and, if your wallet is nearly empty, a little SOL for network fees.
+5. **Run a circle.** On the Circles tab tap New circle and choose "One minute test run". Share the invite link to a second phone to fill the circle, or run the friend helper (`node scripts/demo-friend.js`, see the top of that file) to play the other members from a computer.
+
+The wallet may show "Failed to simulate the results of this request" on devnet. That is the wallet's own simulator, which does not cover devnet. The transaction itself is valid and the same flow simulates normally on mainnet.
+
 ## The problems Kin solves, and how
 
 - **People miss payments.** Every member locks a bond. If a payment is missed, the bond pays that member's share so the pot still goes out on time, and their on-chain Kin Score records it.
@@ -17,7 +27,7 @@ Money sits in program-owned vaults. There are no admin keys and no server that c
 
 ## Verify it yourself
 
-- **Program tests.** Run `anchor test` for 23 on-chain scenarios on a local validator, and `cargo test -p kin --lib` for the pure logic (shuffle and Seeker token check).
+- **Program tests.** Run `anchor test` for 27 on-chain scenarios (23 for Kin, 4 for the faucet) on a local validator, and `cargo test -p kin --lib` for the pure logic (shuffle and Seeker token check).
 - **App tests.** Run `./gradlew testDebugUnitTest` in `app`. The Kotlin client is checked against values produced independently by the JavaScript client, including PDAs, token addresses, instruction discriminators and the shuffle.
 - **In the app.** Open any circle and tap "Check on-chain" under "Proof on Solana". It reads vault balances, recomputes the payout order from the stored seed, and lists the circle's real transactions with links to the Solana Explorer.
 - **Verified build.** `solana-verify build` reproduces the exact bytes deployed on devnet. Running it yourself and comparing the hash to the deployed program should print the same value on both sides:
@@ -32,6 +42,7 @@ Money sits in program-owned vaults. There are no admin keys and no server that c
 ## Repository
 
 - `programs/kin`: the Anchor program (circles, members, bonds, score, autopay, events)
+- `programs/kin_faucet`: a devnet only faucet that hands out test tokens and a little SOL, so anyone can try the app (`G5MhE85BTiTqLPinKZBg7jh4sNMyTc7WUvGcfMerWsig`). It is separate from Kin and is never deployed to mainnet.
 - `tests`: on-chain tests that run on a local validator
 - `app`: the Android app (Kotlin, Jetpack Compose, Mobile Wallet Adapter)
 - `scripts`: devnet helpers, including a demo token, wallet funding and a test Seeker token issuer
@@ -58,6 +69,10 @@ Known limits, stated plainly:
 - Seeker Genesis Tokens only exist on mainnet. On devnet the app checks a test authority instead (see `scripts/seeker-test.js`). The code path is identical.
 - The size of one round's pot is capped while the program is young.
 
+## Releasing
+
+The release build is signed with a key kept outside the repository. Put its properties at `~/.kin/keystore.properties` (or point `KIN_KEYSTORE_PROPERTIES` at the file) and run `./gradlew assembleRelease`. Wallets only authorise an app whose package and signing certificate appear in `https://angelraph.github.io/.well-known/assetlinks.json`, so a new signing key must be added there first.
+
 ## Build and test
 
 Program (Linux or WSL, Anchor 0.31.1):
@@ -73,3 +88,5 @@ App (JDK 17 and the Android SDK):
 cd app
 ./gradlew testDebugUnitTest assembleDebug lintDebug
 ```
+
+The interface follows one design system: white paper, ink type, graphite panels and a single aqua signal colour, set in Inter and JetBrains Mono. Both typefaces are bundled and released under the SIL Open Font Licence (see `FONTS-LICENSE-*.txt`).
