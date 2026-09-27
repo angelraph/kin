@@ -52,6 +52,7 @@ object AlertRules {
         if (circle.status != CircleStatus.Active) return emptyList()
         val mine = members.firstOrNull { it.wallet == me } ?: return emptyList()
         val name = circle.name.ifBlank { "Your circle" }
+        val symbol = app.kin.Config.tokenSymbol(circle.mint)
         val round = circle.currentRound
         val alerts = mutableListOf<Alert>()
         fun alert(kind: AlertKind, title: String, body: String) =
@@ -67,14 +68,14 @@ object AlertRules {
                 alert(
                     AlertKind.PayOpen,
                     "Round ${round + 1} is open",
-                    "$name: pay ${formatAmount(circle.contribution)}. ${formatDuration(circle.roundEndTs - now)} left.",
+                    "$name: pay ${formatAmount(circle.contribution, symbol = symbol)}. ${formatDuration(circle.roundEndTs - now)} left.",
                 )
             } else {
                 val left = if (now <= circle.roundEndTs) circle.roundEndTs - now else circle.graceEndTs - now
                 alert(
                     AlertKind.PayClosing,
                     "Payment closing soon",
-                    "$name: ${formatDuration(left)} left to pay ${formatAmount(circle.contribution)} before bonds step in.",
+                    "$name: ${formatDuration(left)} left to pay ${formatAmount(circle.contribution, symbol = symbol)} before bonds step in.",
                 )
             }
         }
@@ -104,7 +105,7 @@ object AlertRules {
             val recipient = members.firstOrNull { it.index == recipientIndex }
             if (recipient != null) {
                 if (recipient.wallet == me) {
-                    alert(AlertKind.PayoutReady, "Your pot is ready", "$name: ${formatAmount(circle.roundPot)} is waiting. Tap to send it to your wallet.")
+                    alert(AlertKind.PayoutReady, "Your pot is ready", "$name: ${formatAmount(circle.roundPot, symbol = symbol)} is waiting. Tap to send it to your wallet.")
                 } else {
                     alert(AlertKind.PayoutReady, "Payout is ready", "$name: the pot can be sent to ${shortKey(recipient.wallet)}.")
                 }

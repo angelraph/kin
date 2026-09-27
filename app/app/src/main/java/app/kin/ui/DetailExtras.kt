@@ -38,10 +38,12 @@ fun dueForAutopay(detail: CircleDetail, now: Long): List<MemberData> =
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CircleTags(c: CircleData) {
+    val symbol = Config.tokenSymbol(c.mint)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (c.randomize) Pill("Random order, verifiable") else Pill("Join order")
-        Pill("Bond ${formatAmount(c.bond)}")
+        Pill("Bond ${formatAmount(c.bond, symbol = symbol)}")
         if (c.maxMissedAllowed == 0L) Pill("Reliable members only")
+        if (c.mint == Config.SKR_MINT) Pill("SKR track", KinColors.Aqua, filled = true)
         if (c.seekerOnly) {
             if (c.seekerAuthority == Config.SEEKER_AUTHORITY) Pill("Seeker only", KinColors.Good, filled = true)
             else Pill("Custom token gate", KinColors.Warn, filled = true)
@@ -53,11 +55,12 @@ fun CircleTags(c: CircleData) {
 fun AutopayCard(circle: CircleData, member: MemberData, allowance: app.kin.solana.Allowance?, onChange: (Boolean) -> Unit) {
     val remaining = circle.contribution * (circle.maxMembers - member.roundsResolved)
     val on = allowance != null && allowance.delegatedToKin && allowance.amount >= remaining && remaining > 0
+    val symbol = Config.tokenSymbol(circle.mint)
     CloudCard {
         ToggleRow(
             "Autopay",
-            if (on) "Kin can collect up to ${formatAmount(minOf(allowance!!.amount, remaining))} from you for this circle, and nothing else. Turn it off any time."
-            else "Never miss a round. Allows collecting up to ${formatAmount(remaining)}, your remaining dues here, and nothing else.",
+            if (on) "Kin can collect up to ${formatAmount(minOf(allowance!!.amount, remaining), symbol = symbol)} from you for this circle, and nothing else. Turn it off any time."
+            else "Never miss a round. Allows collecting up to ${formatAmount(remaining, symbol = symbol)}, your remaining dues here, and nothing else.",
             on,
             onChange,
         )
@@ -72,6 +75,7 @@ fun ProofSection(
     onOpenUrl: (String) -> Unit,
     now: Long,
 ) {
+    val symbol = Config.tokenSymbol(circle.mint)
     GraphiteCard {
         KinLabel("Proof on Solana", color = Color.White.copy(alpha = 0.55f))
         Spacer(Modifier.height(6.dp))
@@ -96,13 +100,13 @@ fun ProofSection(
                     ProofRow(
                         ok = f.vaultOk,
                         title = "Round vault",
-                        detail = "Holds ${formatAmount(f.vaultBalance)}, owes ${formatAmount(f.expectedVault)}",
+                        detail = "Holds ${formatAmount(f.vaultBalance, symbol = symbol)}, owes ${formatAmount(f.expectedVault, symbol = symbol)}",
                         onClick = { onOpenUrl(Config.EXPLORER_ADDRESS.format(KinProgram.vaultPda(circle.address))) },
                     )
                     ProofRow(
                         ok = f.bondVaultOk,
                         title = "Bond vault",
-                        detail = "Holds ${formatAmount(f.bondVaultBalance)}, owes ${formatAmount(f.expectedBondVault)}",
+                        detail = "Holds ${formatAmount(f.bondVaultBalance, symbol = symbol)}, owes ${formatAmount(f.expectedBondVault, symbol = symbol)}",
                         onClick = { onOpenUrl(Config.EXPLORER_ADDRESS.format(KinProgram.bondVaultPda(circle.address))) },
                     )
                 }
@@ -125,7 +129,7 @@ fun ProofSection(
                 if (proof.activity.isEmpty()) {
                     Text("Nothing yet.", color = Color.White.copy(alpha = 0.6f))
                 }
-                proof.activity.forEach { item -> ActivityRow(item, now, onOpenUrl) }
+                proof.activity.forEach { item -> ActivityRow(item, now, onOpenUrl, symbol) }
                 OnDarkButton("Check again", onLoad)
             }
         }
@@ -145,7 +149,7 @@ private fun ProofRow(ok: Boolean, title: String, detail: String, onClick: () -> 
 }
 
 @Composable
-private fun ActivityRow(item: ActivityItem, now: Long, onOpenUrl: (String) -> Unit) {
+private fun ActivityRow(item: ActivityItem, now: Long, onOpenUrl: (String) -> Unit, symbol: String) {
     Row(
         Modifier.fillMaxWidth().clickable { onOpenUrl(Config.EXPLORER_TX.format(item.signature)) }.padding(vertical = 2.dp),
         verticalAlignment = Alignment.Top,
@@ -153,7 +157,7 @@ private fun ActivityRow(item: ActivityItem, now: Long, onOpenUrl: (String) -> Un
         Column(Modifier.weight(1f)) {
             item.events.forEach { e ->
                 Text(
-                    describe(e),
+                    describe(e, symbol),
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.White,
                     maxLines = 2,
@@ -169,17 +173,17 @@ private fun ActivityRow(item: ActivityItem, now: Long, onOpenUrl: (String) -> Un
     }
 }
 
-fun describe(e: KinEvent): String = when (e) {
-    is KinEvent.CircleCreated -> "Circle created, ${formatAmount(e.contribution)} per round for ${e.maxMembers} members"
-    is KinEvent.MemberJoined -> "${shortKey(e.wallet)} joined and locked ${formatAmount(e.bond)}" + if (e.started) ". The circle started." else ""
+fun describe(e: KinEvent, symbol: String = Config.TOKEN_SYMBOL): String = when (e) {
+    is KinEvent.CircleCreated -> "Circle created, ${formatAmount(e.contribution, symbol = symbol)} per round for ${e.maxMembers} members"
+    is KinEvent.MemberJoined -> "${shortKey(e.wallet)} joined and locked ${formatAmount(e.bond, symbol = symbol)}" + if (e.started) ". The circle started." else ""
     is KinEvent.OrderDrawn -> if (e.randomized) "Payout order drawn from on-chain randomness" else "Payout order set to join order"
-    is KinEvent.Contributed -> "${shortKey(e.wallet)} paid ${formatAmount(e.amount)} for round ${e.round + 1}" +
+    is KinEvent.Contributed -> "${shortKey(e.wallet)} paid ${formatAmount(e.amount, symbol = symbol)} for round ${e.round + 1}" +
         (if (e.autopay) " by autopay" else "") + (if (!e.onTime) ", late" else "")
-    is KinEvent.MissCovered -> "${shortKey(e.wallet)} missed round ${e.round + 1}. Bond covered ${formatAmount(e.covered)}" +
-        (if (e.shortfall > 0) ", ${formatAmount(e.shortfall)} short" else "")
-    is KinEvent.PaidOut -> "${shortKey(e.recipient)} received ${formatAmount(e.amount)} for round ${e.round + 1}" +
+    is KinEvent.MissCovered -> "${shortKey(e.wallet)} missed round ${e.round + 1}. Bond covered ${formatAmount(e.covered, symbol = symbol)}" +
+        (if (e.shortfall > 0) ", ${formatAmount(e.shortfall, symbol = symbol)} short" else "")
+    is KinEvent.PaidOut -> "${shortKey(e.recipient)} received ${formatAmount(e.amount, symbol = symbol)} for round ${e.round + 1}" +
         (if (e.completed) ". The circle is complete." else "")
-    is KinEvent.BondReturned -> "${shortKey(e.wallet)} got ${formatAmount(e.amount)} of bond back"
+    is KinEvent.BondReturned -> "${shortKey(e.wallet)} got ${formatAmount(e.amount, symbol = symbol)} of bond back"
 }
 
 fun agoLabel(seconds: Long): String = when {

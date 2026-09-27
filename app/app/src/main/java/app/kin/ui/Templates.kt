@@ -1,5 +1,8 @@
 package app.kin.ui
 
+import app.kin.Config
+import app.kin.solana.PublicKey
+
 /** A ready-made way to use a circle. Every template runs on the same on-chain program. */
 data class CircleTemplate(
     val id: String,
@@ -17,6 +20,7 @@ data class CircleTemplate(
     val onlyReliable: Boolean = false,
     val randomOrder: Boolean = true,
     val seekerOnly: Boolean = false,
+    val mint: PublicKey = Config.MINT,
 )
 
 object Templates {
@@ -100,6 +104,16 @@ object Templates {
             example = "3 wallets, 1 a minute, every rule enforced at real speed",
             name = "Test run",
             contribution = 1, members = 3, bondMultiple = 2, periodSecs = 60L,
+        ),
+        CircleTemplate(
+            id = "skr",
+            short = "SKR club",
+            title = "SKR club",
+            tagline = "A circle that saves in SKR instead of tUSDC, for the hackathon's SKR integration prize.",
+            example = "5 people, 10 tSKR a week, bonded and verifiable like any other circle",
+            name = "SKR club",
+            contribution = 10, members = 5, bondMultiple = 2, periodSecs = WEEK,
+            mint = Config.SKR_MINT,
         ),
     )
 

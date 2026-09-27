@@ -24,18 +24,25 @@ class CircleWatchWorker(context: Context, params: WorkerParameters) : CoroutineW
     override suspend fun doWork(): Result {
         val prefs = KinPrefs(applicationContext)
         val wallet = prefs.wallet ?: return Result.success()
-        if (!prefs.remindersEnabled || !Notifier.canPost(applicationContext)) return Result.success()
 
         return try {
             val repo = KinRepository(SolanaRpc(Config.RPC_URL))
             val now = System.currentTimeMillis() / 1000
-            repo.circlesFor(wallet).filter { it.status == CircleStatus.Active }.forEach { circle ->
+            val circles = repo.circlesFor(wallet)
+            val personal = mutableListOf<WidgetSnapshot>()
+            circles.filter { it.status == CircleStatus.Active }.forEach { circle ->
                 val members = repo.members(circle.address)
                 val allowances = repo.allowances(members.map { it.wallet }, circle.mint)
-                AlertRules.evaluate(wallet, circle, members, allowances, now)
-                    .filterNot { prefs.wasShown(it.key) }
-                    .forEach { alert -> if (Notifier.post(applicationContext, alert)) prefs.markShown(alert.key) }
+                personalSnapshot(wallet, circle, members, allowances, now)?.let { personal.add(it) }
+                if (prefs.remindersEnabled && Notifier.canPost(applicationContext)) {
+                    AlertRules.evaluate(wallet, circle, members, allowances, now)
+                        .filterNot { prefs.wasShown(it.key) }
+                        .forEach { alert -> if (Notifier.post(applicationContext, alert)) prefs.markShown(alert.key) }
+                }
             }
+            val snapshot = bestOf(personal) ?: aggregateSnapshot(circles, now)
+            KinWidgetStore.save(applicationContext, snapshot)
+            KinWidgetProvider.refresh(applicationContext)
             Result.success()
         } catch (e: CancellationException) {
             throw e

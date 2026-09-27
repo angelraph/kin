@@ -112,6 +112,7 @@ class CreateRequest(
     val maxMissed: Long,
     val randomize: Boolean,
     val seekerOnly: Boolean,
+    val mint: PublicKey = Config.MINT,
 )
 
 @Composable
@@ -283,6 +284,7 @@ private fun BalanceCard(state: UiState, modifier: Modifier = Modifier) {
         }
         Spacer(Modifier.height(8.dp))
         Text(formatAmount(state.balance), style = MaterialTheme.typography.displayMedium, color = Color.White)
+        Mono(formatAmount(state.skrBalance, symbol = Config.SKR_SYMBOL), color = KinColors.Aqua, size = 13)
         Spacer(Modifier.height(14.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(20.dp), verticalAlignment = Alignment.CenterVertically) {
             DarkStat("Live", live.toString())
@@ -319,7 +321,10 @@ private fun CircleCard(c: CircleData, modifier: Modifier = Modifier, onClick: ()
             StatusPill(c.status)
         }
         Spacer(Modifier.height(4.dp))
-        Mono("${formatAmount(c.contribution)} ${periodLabel(c.periodSecs)}  /  ${c.memberCount} of ${c.maxMembers} members", color = KinColors.Slate, size = 12)
+        Mono(
+            "${formatAmount(c.contribution, symbol = Config.tokenSymbol(c.mint))} ${periodLabel(c.periodSecs)}  /  ${c.memberCount} of ${c.maxMembers} members",
+            color = KinColors.Slate, size = 12,
+        )
         Spacer(Modifier.height(14.dp))
         when (c.status) {
             CircleStatus.Active -> {
@@ -572,6 +577,7 @@ private fun CreateScreen(template: CircleTemplate?, busy: Boolean, onBack: () ->
     var strict by remember { mutableStateOf(template?.onlyReliable ?: false) }
     var randomOrder by remember { mutableStateOf(template?.randomOrder ?: true) }
     var seekerOnly by remember { mutableStateOf(template?.seekerOnly ?: false) }
+    var mint by remember { mutableStateOf(template?.mint ?: Config.MINT) }
     val periods = listOf("1 minute" to 60L, "Daily" to 86_400L, "Weekly" to 604_800L, "Monthly" to 2_592_000L)
     var period by remember { mutableLongStateOf(template?.periodSecs ?: 60L) }
 
@@ -586,6 +592,7 @@ private fun CreateScreen(template: CircleTemplate?, busy: Boolean, onBack: () ->
         randomOrder = t.randomOrder
         seekerOnly = t.seekerOnly
         period = t.periodSecs
+        mint = t.mint
     }
 
     val contribution = parseAmount(amount)
@@ -610,9 +617,14 @@ private fun CreateScreen(template: CircleTemplate?, busy: Boolean, onBack: () ->
             picked?.let { Text(it.tagline, style = MaterialTheme.typography.bodyMedium, color = KinColors.Slate) }
 
             KinField(name, { name = it.take(32) }, "Circle name")
+            KinLabel("Token")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ChoiceChip(Config.TOKEN_SYMBOL, mint == Config.MINT) { mint = Config.MINT }
+                ChoiceChip("${Config.SKR_SYMBOL}, SKR track", mint == Config.SKR_MINT) { mint = Config.SKR_MINT }
+            }
             KinField(
                 amount, { amount = it },
-                "Each member pays per round (${Config.TOKEN_SYMBOL})",
+                "Each member pays per round (${Config.tokenSymbol(mint)})",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 isError = contribution == null,
             )
@@ -628,16 +640,18 @@ private fun CreateScreen(template: CircleTemplate?, busy: Boolean, onBack: () ->
 
             if (contribution != null) {
                 val bond = bondMultiple.coerceAtMost(members)
+                val symbol = Config.tokenSymbol(mint)
                 GraphiteCard {
                     KinLabel("What this means", color = Color.White.copy(alpha = 0.55f))
                     Spacer(Modifier.height(8.dp))
-                    Text(formatAmount(contribution * members), style = MaterialTheme.typography.displayMedium, color = Color.White)
+                    Text(formatAmount(contribution * members, symbol = symbol), style = MaterialTheme.typography.displayMedium, color = Color.White)
                     Text("paid out every round", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.55f))
                     Spacer(Modifier.height(14.dp))
-                    SummaryLine("You pay in total", formatAmount(contribution * members))
-                    SummaryLine("Bond you lock", formatAmount(contribution * bond))
+                    SummaryLine("You pay in total", formatAmount(contribution * members, symbol = symbol))
+                    SummaryLine("Bond you lock", formatAmount(contribution * bond, symbol = symbol))
                     SummaryLine("Circle lasts", spanLabel(members, period))
                     SummaryLine("Payout order", if (randomOrder) "Random, verifiable" else "Order of joining")
+                    if (mint == Config.SKR_MINT) SummaryLine("Contests", "$10k SKR integration prize")
                 }
             }
             AquaButton(
@@ -654,6 +668,7 @@ private fun CreateScreen(template: CircleTemplate?, busy: Boolean, onBack: () ->
                             maxMissed = if (strict) 0 else 1000,
                             randomize = randomOrder,
                             seekerOnly = seekerOnly,
+                            mint = mint,
                         ),
                     )
                 },
@@ -702,6 +717,7 @@ private fun DetailScreen(state: UiState, detail: CircleDetail, actions: Actions)
     val pendingAfterGrace = if (active && now > c.graceEndTs) detail.members.filter { it.roundsResolved <= c.currentRound } else emptyList()
     val recipient = if (active) detail.members.firstOrNull { it.index == c.payoutOrder[c.currentRound] } else null
     val canPayout = active && c.resolvedCount == c.memberCount && now >= c.roundEndTs && recipient != null
+    val tokenSymbol = Config.tokenSymbol(c.mint)
 
     Column(Modifier.fillMaxSize().background(KinColors.Paper)) {
         Box(Modifier.statusBarsPadding())
@@ -729,9 +745,12 @@ private fun DetailScreen(state: UiState, detail: CircleDetail, actions: Actions)
                         StatusPill(c.status, dark = true)
                     }
                     Spacer(Modifier.height(8.dp))
-                    Text(formatAmount(c.contribution * c.memberCount.coerceAtLeast(1)), style = MaterialTheme.typography.displayMedium, color = Color.White)
+                    Text(formatAmount(c.contribution * c.memberCount.coerceAtLeast(1), symbol = tokenSymbol), style = MaterialTheme.typography.displayMedium, color = Color.White)
                     Spacer(Modifier.height(4.dp))
-                    Mono("${formatAmount(c.contribution)} ${periodLabel(c.periodSecs)}  /  bond ${formatAmount(c.bond)}", color = Color.White.copy(alpha = 0.55f), size = 12)
+                    Mono(
+                        "${formatAmount(c.contribution, symbol = tokenSymbol)} ${periodLabel(c.periodSecs)}  /  bond ${formatAmount(c.bond, symbol = tokenSymbol)}",
+                        color = Color.White.copy(alpha = 0.55f), size = 12,
+                    )
                     if (active) {
                         Spacer(Modifier.height(16.dp))
                         Segments(detail.members.sortedBy { it.index }.map { it.roundsResolved > c.currentRound }, dark = true)
@@ -757,11 +776,11 @@ private fun DetailScreen(state: UiState, detail: CircleDetail, actions: Actions)
                         CloudCard {
                             ToggleRow(
                                 "Turn on autopay",
-                                "Allows collecting up to ${formatAmount(c.contribution * c.maxMembers)}, your total dues here. Revoke any time.",
+                                "Allows collecting up to ${formatAmount(c.contribution * c.maxMembers, symbol = tokenSymbol)}, your total dues here. Revoke any time.",
                                 joinWithAutopay,
                             ) { joinWithAutopay = it }
                         }
-                        AquaButton("Join and lock ${formatAmount(c.bond)} bond", { actions.onJoin(c.address, joinWithAutopay) })
+                        AquaButton("Join and lock ${formatAmount(c.bond, symbol = tokenSymbol)} bond", { actions.onJoin(c.address, joinWithAutopay) })
                     }
                     c.status == CircleStatus.Open ->
                         CloudCard {
@@ -773,9 +792,9 @@ private fun DetailScreen(state: UiState, detail: CircleDetail, actions: Actions)
                             Spacer(Modifier.height(12.dp))
                             GraphiteButton("Invite friends", { actions.onShare(c) })
                         }
-                    canPay -> AquaButton("Pay ${formatAmount(c.contribution)}", actions.onContribute)
+                    canPay -> AquaButton("Pay ${formatAmount(c.contribution, symbol = tokenSymbol)}", actions.onContribute)
                     c.status == CircleStatus.Completed && myMember != null && !myMember.bondClaimed ->
-                        AquaButton("Claim back ${formatAmount(myMember.bondLocked - myMember.bondUsed)}", actions.onClaim)
+                        AquaButton("Claim back ${formatAmount(myMember.bondLocked - myMember.bondUsed, symbol = tokenSymbol)}", actions.onClaim)
                     iResolved && active ->
                         Text("You are paid up for this round.", color = KinColors.Good, style = MaterialTheme.typography.titleMedium)
                 }
@@ -905,7 +924,7 @@ private fun MemberRow(c: CircleData, m: MemberData, isMe: Boolean, score: ScoreD
                         c.roundOf(m.index)?.let { append("Paid in round ${it + 1}  ·  ") }
                         append(score?.reliabilityPercent?.let { "$it% on time" } ?: "New member")
                         if (m.missed > 0) append("  ·  ${m.missed} missed here")
-                        if (m.bondUsed > 0) append("  ·  bond used ${formatAmount(m.bondUsed)}")
+                        if (m.bondUsed > 0) append("  ·  bond used ${formatAmount(m.bondUsed, symbol = Config.tokenSymbol(c.mint))}")
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = scoreColor(score?.reliabilityPercent),

@@ -58,6 +58,7 @@ data class UiState(
     val circles: List<CircleData> = emptyList(),
     val myScore: ScoreData? = null,
     val balance: Long = 0,
+    val skrBalance: Long = 0,
     val seeker: SgtProof? = null,
     val detail: CircleDetail? = null,
     val loading: Boolean = false,
@@ -113,7 +114,8 @@ class KinViewModel : ViewModel() {
             val circles = repo.circlesFor(wallet)
             val score = repo.score(wallet)
             val balance = repo.tokenBalance(wallet, Config.MINT)
-            _state.update { it.copy(circles = circles, myScore = score, balance = balance, loading = false) }
+            val skrBalance = repo.tokenBalance(wallet, Config.SKR_MINT)
+            _state.update { it.copy(circles = circles, myScore = score, balance = balance, skrBalance = skrBalance, loading = false) }
         } catch (e: Exception) {
             _state.update { it.copy(loading = false, notice = e.message ?: "Could not load circles") }
         }
@@ -188,7 +190,7 @@ class KinViewModel : ViewModel() {
         val wallet = _state.value.wallet ?: return
         val id = System.currentTimeMillis() / 1000
         val ix = KinProgram.createCircle(
-            wallet, Config.MINT, id, req.name.trim(), req.contribution, req.contribution * req.bondMultiple,
+            wallet, req.mint, id, req.name.trim(), req.contribution, req.contribution * req.bondMultiple,
             req.periodSecs, req.graceSecs, req.maxMembers, req.maxMissed,
             req.randomize, req.seekerOnly, if (req.seekerOnly) Config.SEEKER_AUTHORITY else PublicKey.DEFAULT,
         )
@@ -230,12 +232,17 @@ class KinViewModel : ViewModel() {
         }
     }
 
-    /** One signature: a little SOL if the wallet is nearly empty, then 500 test tokens. Devnet only. */
+    /** One signature: a little SOL if the wallet is nearly empty, then 500 of each test token. Devnet only. */
     fun getTestFunds() {
         val wallet = _state.value.wallet ?: return
         send(
-            listOf(FaucetProgram.refuel(wallet), FaucetProgram.claim(wallet, Config.MINT)),
-            "Test funds added: ${formatAmount(FAUCET_TOKENS)}",
+            listOf(
+                FaucetProgram.refuel(wallet),
+                FaucetProgram.claim(wallet, Config.MINT),
+                FaucetProgram.claim(wallet, Config.SKR_MINT),
+            ),
+            "Test funds added: ${formatAmount(FAUCET_TOKENS, symbol = Config.TOKEN_SYMBOL)} and " +
+                formatAmount(FAUCET_TOKENS, symbol = Config.SKR_SYMBOL),
         ) { loadHome() }
     }
 

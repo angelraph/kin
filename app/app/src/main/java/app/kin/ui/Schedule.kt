@@ -38,14 +38,16 @@ object Schedule {
     fun positionNote(c: CircleData, me: MemberData): String? {
         val round = c.roundOf(me.index) ?: return null
         val n = c.maxMembers
+        val symbol = app.kin.Config.tokenSymbol(c.mint)
         val paidByThen = c.contribution * (round + 1)
         val pot = c.contribution * n
         val advance = pot - paidByThen
+        fun amt(v: Long) = formatAmount(v, symbol = symbol)
         return when {
             n < 2 -> null
-            round == 0 -> "You are paid first, in round 1. You collect ${formatAmount(pot)} after paying ${formatAmount(c.contribution)}, an interest free advance of ${formatAmount(advance)} that you repay over the next ${n - 1} rounds."
-            round == n - 1 -> "You are paid last, in round $n. Every payment you make builds up to one lump sum of ${formatAmount(pot)}. It works as a savings goal."
-            else -> "You are paid in round ${round + 1}. By then you will have paid ${formatAmount(paidByThen)} and you collect ${formatAmount(pot)}, an advance of ${formatAmount(advance)} that you repay afterwards."
+            round == 0 -> "You are paid first, in round 1. You collect ${amt(pot)} after paying ${amt(c.contribution)}, an interest free advance of ${amt(advance)} that you repay over the next ${n - 1} rounds."
+            round == n - 1 -> "You are paid last, in round $n. Every payment you make builds up to one lump sum of ${amt(pot)}. It works as a savings goal."
+            else -> "You are paid in round ${round + 1}. By then you will have paid ${amt(paidByThen)} and you collect ${amt(pot)}, an advance of ${amt(advance)} that you repay afterwards."
         }
     }
 }

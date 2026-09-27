@@ -28,7 +28,11 @@ import app.kin.ui.Reminders
 import app.kin.wallet.WalletSession
 import app.kin.watch.CircleWatchWorker
 import app.kin.watch.KinPrefs
+import app.kin.watch.KinWidgetProvider
+import app.kin.watch.KinWidgetStore
 import app.kin.watch.Notifier
+import app.kin.watch.WidgetSnapshot
+import app.kin.watch.aggregateSnapshot
 import com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 
 class MainActivity : ComponentActivity() {
@@ -99,12 +103,26 @@ class MainActivity : ComponentActivity() {
                 if (state.wallet == null) {
                     CircleWatchWorker.cancel(this@MainActivity)
                     prefs.clearShown()
+                    KinWidgetStore.clear(this@MainActivity)
+                    KinWidgetProvider.refresh(this@MainActivity)
                 } else {
                     if (prefs.remindersEnabled) startWatching()
+                    KinWidgetStore.save(this@MainActivity, WidgetSnapshot.connected())
+                    KinWidgetProvider.refresh(this@MainActivity)
                     pendingCircle?.let {
                         pendingCircle = null
                         vm.openCircle(it)
                     }
+                }
+            }
+
+            // Any time the circle list changes, give the widget an immediate, if less detailed, update.
+            // The background watcher fills in the more personal "pay/collect/claim" version later.
+            LaunchedEffect(state.circles) {
+                if (state.wallet != null) {
+                    val snapshot = aggregateSnapshot(state.circles, System.currentTimeMillis() / 1000)
+                    KinWidgetStore.save(this@MainActivity, snapshot)
+                    KinWidgetProvider.refresh(this@MainActivity)
                 }
             }
 

@@ -68,16 +68,18 @@ fun UseCaseExplorer(actionLabel: String, onAction: (CircleTemplate) -> Unit, mod
         GraphiteCard(padding = 18.dp) {
             KinLabel(selected.title, color = Color.White.copy(alpha = 0.55f))
             Spacer(Modifier.height(12.dp))
+            val symbol = Config.tokenSymbol(selected.mint)
             val pot = selected.contribution * selected.members
             CodeLine("circle", selected.name)
             CodeLine("members", "${selected.members}")
-            CodeLine("each pays", "${selected.contribution} ${Config.TOKEN_SYMBOL} ${periodLabel(selected.periodSecs)}")
-            CodeLine("pot", "$pot ${Config.TOKEN_SYMBOL} each round")
-            CodeLine("bond", "${selected.contribution * selected.bondMultiple} ${Config.TOKEN_SYMBOL}")
+            CodeLine("each pays", "${selected.contribution} $symbol ${periodLabel(selected.periodSecs)}")
+            CodeLine("pot", "$pot $symbol each round")
+            CodeLine("bond", "${selected.contribution * selected.bondMultiple} $symbol")
             CodeLine("lasts", spanLabel(selected.members, selected.periodSecs))
             CodeLine("order", if (selected.randomOrder) "random, verifiable" else "order of joining")
             if (selected.onlyReliable) CodeLine("entry", "clean record only")
             if (selected.seekerOnly) CodeLine("entry", "Seeker Genesis Token")
+            if (selected.mint == Config.SKR_MINT) CodeLine("prize track", "$10k SKR integration")
         }
         AquaButton(actionLabel, { onAction(selected) })
     }

@@ -18,7 +18,7 @@
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
-        android:label="Kin"
+        android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.Kin">
 
@@ -49,5 +49,17 @@
                 <data android:pathPrefix="/kin/" />
             </intent-filter>
         </activity>
+
+        <!-- Home-screen widget: a glance at the circle that needs attention most. Read-only, never signs. -->
+        <receiver
+            android:name=".watch.KinWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/kin_widget_info" />
+        </receiver>
     </application>
 </manifest>

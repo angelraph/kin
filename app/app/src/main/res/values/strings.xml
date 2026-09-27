@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Kin</string>
+    <string name="widget_label">Kin</string>
+    <string name="widget_default_headline">Open Kin to start a circle</string>
+</resources>
