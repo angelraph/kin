@@ -121,6 +121,7 @@ fun KinApp(state: UiState, actions: Actions, reminders: Reminders) {
     var tab by rememberSaveable { mutableStateOf(Tab.Circles) }
     var templateId by rememberSaveable { mutableStateOf<String?>(null) }
     val template = templateId?.let { Templates.byId(it) }
+    var introDone by rememberSaveable { mutableStateOf(false) }
     var learnName by rememberSaveable { mutableStateOf<String?>(null) }
     val learnPage = learnName?.let { name -> LearnPage.entries.firstOrNull { it.name == name } }
     val openLearn: (LearnPage) -> Unit = { learnName = it.name; route = Route.Learn }
@@ -145,6 +146,7 @@ fun KinApp(state: UiState, actions: Actions, reminders: Reminders) {
         Box(Modifier.fillMaxSize().widthIn(max = ContentWidth)) {
             val detail = state.detail
             when {
+                state.wallet == null && !introDone -> IntroScreen(onDone = { introDone = true })
                 state.wallet == null && route == Route.Simulate ->
                     SimulationScreen(onBack = { route = Route.Home }, onConnect = actions.onConnect)
                 state.wallet == null && route == Route.Learn && learnPage != null ->
