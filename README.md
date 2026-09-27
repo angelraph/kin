@@ -6,11 +6,12 @@ A circle is a group that pays a fixed amount every round. Each round, one member
 
 ## Try it in two minutes
 
-1. **Install.** [Download kin-0.3.0.apk](https://github.com/angelraph/kin/releases/latest/download/kin-0.3.0.apk) directly, or open the [latest release](https://github.com/angelraph/kin/releases/latest) page and tap "Assets" to find it. Open the downloaded file on any Android phone. Kin also runs fine on a Seeker. Your browser may ask to allow installing from this source once; that is normal for an app outside the Play Store.
+1. **Install.** [Download kin-0.4.0.apk](https://github.com/angelraph/kin/releases/latest/download/kin-0.4.0.apk) directly, or open the [latest release](https://github.com/angelraph/kin/releases/latest) page and tap "Assets" to find it. Open the downloaded file on any Android phone. Kin also runs fine on a Seeker. Your browser may ask to allow installing from this source once; that is normal for an app outside the Play Store.
 2. **See the idea first.** On the first screen tap "See a circle run, no wallet needed". It plays five people through five rounds locally, including a missed payment covered by a bond.
 3. **Set your wallet to devnet.** Kin works with any Mobile Wallet Adapter wallet. In Phantom: Settings, Developer Settings, turn on Testnet Mode, and choose Solana Devnet.
-4. **Connect and get funds.** Tap Connect wallet, open the You tab and tap "Get test funds". One signature gives you 500 test tokens and, if your wallet is nearly empty, a little SOL for network fees.
+4. **Connect and get funds.** Tap Connect wallet, open the You tab and tap "Get test funds". One signature gives you 500 tUSDC and 500 tSKR and, if your wallet is nearly empty, a little SOL for network fees.
 5. **Run a circle.** On the Circles tab tap New circle and choose "One minute test run". Share the invite link to a second phone to fill the circle, or run the friend helper (`node scripts/demo-friend.js`, see the top of that file) to play the other members from a computer.
+6. **Add the widget.** Long-press your home screen, choose Widgets, and add Kin. It shows the one thing most worth knowing about your circles right now, and updates as the app does.
 
 Phantom may also show a red notice that the app's identity could not be verified. It appears for both the debug and the release build, even though Google's Digital Asset Links checker reports Kin's package and both signing keys as linked to angelraph.github.io and Android reports the domain as verified for the app, so it comes from Phantom's side. Tap Connect to continue. Wallets that follow the Mobile Wallet Adapter specification, such as the Seed Vault Wallet on a Seeker, verify against the same file.
 
@@ -24,8 +25,13 @@ The wallet may show "Failed to simulate the results of this request" on devnet. 
 - **Arguments about who goes first.** A circle can draw its payout order from on-chain randomness when it fills. The seed is stored on-chain, so anyone can recompute the order and check it. The app does exactly that.
 - **Strangers and fake accounts.** A circle can require a Seeker Genesis Token. The program itself checks the token account, its owner and its mint authority, not just the app.
 - **"Trust me" accounting.** Every action emits an on-chain event. The app rebuilds a circle's history from real transaction logs and checks that the vaults hold at least what the program says is owed.
+- **Saving is a monthly event, not a daily one.** A home-screen widget shows the circle that needs attention most, so checking in does not require opening the app.
 
 Money sits in program-owned vaults. There are no admin keys and no server that can move funds.
+
+## The SKR track
+
+A circle's contribution and bond are just an SPL token, so a circle can be denominated in `tSKR` instead of `tUSDC`. The "SKR club" template on the Create screen sets this up, and every amount in that circle displays in SKR, from the create preview through to the Proof screen. `programs/kin_faucet` mints both test tokens from the same PDA, so a wallet gets both in one signature.
 
 ## Verify it yourself
 
