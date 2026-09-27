@@ -6,13 +6,13 @@ A circle is a group that pays a fixed amount every round. Each round, one member
 
 ## Try it in two minutes
 
-1. **Install.** Download `kin-0.2.1.apk` from the [latest release](https://github.com/angelraph/kin/releases/latest) and open it on any Android phone. Kin also runs fine on a Seeker.
+1. **Install.** [Download kin-0.2.1.apk](https://github.com/angelraph/kin/releases/latest/download/kin-0.2.1.apk) directly, or open the [latest release](https://github.com/angelraph/kin/releases/latest) page and tap "Assets" to find it. Open the downloaded file on any Android phone. Kin also runs fine on a Seeker. Your browser may ask to allow installing from this source once; that is normal for an app outside the Play Store.
 2. **See the idea first.** On the first screen tap "See a circle run, no wallet needed". It plays five people through five rounds locally, including a missed payment covered by a bond.
 3. **Set your wallet to devnet.** Kin works with any Mobile Wallet Adapter wallet. In Phantom: Settings, Developer Settings, turn on Testnet Mode, and choose Solana Devnet.
 4. **Connect and get funds.** Tap Connect wallet, open the You tab and tap "Get test funds". One signature gives you 500 test tokens and, if your wallet is nearly empty, a little SOL for network fees.
 5. **Run a circle.** On the Circles tab tap New circle and choose "One minute test run". Share the invite link to a second phone to fill the circle, or run the friend helper (`node scripts/demo-friend.js`, see the top of that file) to play the other members from a computer.
 
-Phantom may also show a red notice that the app's identity could not be verified. It appears for both the debug and the release build, even though Google's Digital Asset Links checker reports Kin's package and both signing keys as linked to ngelraph.github.io and Android reports the domain as verified for the app, so it comes from Phantom's side. Tap Connect to continue. Wallets that follow the Mobile Wallet Adapter specification, such as the Seed Vault Wallet on a Seeker, verify against the same file.
+Phantom may also show a red notice that the app's identity could not be verified. It appears for both the debug and the release build, even though Google's Digital Asset Links checker reports Kin's package and both signing keys as linked to angelraph.github.io and Android reports the domain as verified for the app, so it comes from Phantom's side. Tap Connect to continue. Wallets that follow the Mobile Wallet Adapter specification, such as the Seed Vault Wallet on a Seeker, verify against the same file.
 
 The wallet may show "Failed to simulate the results of this request" on devnet. That is the wallet's own simulator, which does not cover devnet. The transaction itself is valid and the same flow simulates normally on mainnet.
 
