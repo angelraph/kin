@@ -21,3 +21,8 @@ wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "npx ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+
+[test]
+# The ledger lives on an NTFS-backed WSL mount, where a cold RocksDB genesis load is slow.
+# The default wait is too short there and the suite never gets to run; this margin is generous everywhere else.
+startup_wait = 30000

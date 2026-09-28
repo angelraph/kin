@@ -88,6 +88,7 @@ The release build is signed with a key kept outside the repository. Put its prop
 Program (Linux or WSL, Anchor 0.31.1):
 
 ```bash
+npm install
 anchor build
 anchor test
 ```
