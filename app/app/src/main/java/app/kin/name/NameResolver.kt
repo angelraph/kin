@@ -58,8 +58,7 @@ class NameResolver(rpcUrl: String = Config.NAME_RESOLUTION_RPC_URL) {
         cache[key]?.let { return it }
         if (cache.containsKey(key)) return null
         val name = runCatching {
-            val account = rpc.accountInfo(mainDomainAddress(wallet)) ?: return@runCatching null
-            parse(account.data)
+            rpc.accountInfo(mainDomainAddress(wallet))?.let { parse(it.data) }
         }.getOrNull()
         cache[key] = name
         return name

@@ -39,6 +39,7 @@ A circle's contribution and bond are just an SPL token, so a circle can be denom
 - **Program tests.** Run `anchor test` for 27 on-chain scenarios (23 for Kin, 4 for the faucet) on a local validator, and `cargo test -p kin --lib` for the pure logic (shuffle and Seeker token check).
 - **App tests.** Run `./gradlew testDebugUnitTest` in `app`. The Kotlin client is checked against values produced independently by the JavaScript client, including PDAs, token addresses, instruction discriminators and the shuffle. The .skr/.sol name lookup is checked against a real mainnet account it was captured from.
 - **In the app.** Open any circle and tap "Check on-chain" under "Proof on Solana". It reads vault balances, recomputes the payout order from the stored seed, and lists the circle's real transactions with links to the Solana Explorer.
+- **The .skr/.sol name lookup**, since it only shows a name for a wallet that actually owns one. On the Discover tab, paste `4tgZq58jBKzYwcz8hPNMkq3SJvP8wgdgM63v7JGETx9T` into "Check a wallet"; it should read `nasa.skr`. That is a real mainnet wallet, not a Kin address, so its Kin Score correctly comes back as new.
 - **Verified build.** `solana-verify build` reproduces the exact bytes deployed on devnet. Running it yourself and comparing the hash to the deployed program should print the same value on both sides:
 
   ```bash

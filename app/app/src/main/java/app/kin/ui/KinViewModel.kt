@@ -146,6 +146,7 @@ class KinViewModel : ViewModel() {
             score.onFailure { notify(it.message ?: "Could not read that wallet") }
             _state.update { it.copy(lookup = LookupState(address = address, score = score.getOrNull())) }
         }
+        resolveNames(listOf(address))
     }
 
     fun openCircle(address: PublicKey) = launchBusy {

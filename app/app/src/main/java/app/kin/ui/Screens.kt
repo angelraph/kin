@@ -417,7 +417,7 @@ private fun DiscoverTab(state: UiState, actions: Actions, onSimulate: () -> Unit
                 GraphiteButton("Check Kin Score", { actions.onLookup(address) }, enabled = address.isNotBlank())
                 state.lookup?.let { l ->
                     Spacer(Modifier.height(14.dp))
-                    LookupResult(l)
+                    LookupResult(l, state.names)
                 }
             }
         }
@@ -427,7 +427,7 @@ private fun DiscoverTab(state: UiState, actions: Actions, onSimulate: () -> Unit
 }
 
 @Composable
-private fun LookupResult(l: LookupState) {
+private fun LookupResult(l: LookupState, names: Map<String, String>) {
     when {
         l.loading -> Row(verticalAlignment = Alignment.CenterVertically) {
             CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = KinColors.Ink)
@@ -440,7 +440,7 @@ private fun LookupResult(l: LookupState) {
                 ScoreRing(l.score?.reliabilityPercent, 64.dp)
                 Spacer(Modifier.width(16.dp))
                 Column {
-                    Mono(l.address?.let { shortKey(it) } ?: "", size = 12, color = KinColors.Slate)
+                    Mono(l.address?.let { displayName(names, it) } ?: "", size = 12, color = KinColors.Slate)
                     Spacer(Modifier.height(4.dp))
                     val s = l.score
                     if (s == null) {
