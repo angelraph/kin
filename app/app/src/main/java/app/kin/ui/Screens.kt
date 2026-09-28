@@ -280,7 +280,7 @@ private fun BalanceCard(state: UiState, modifier: Modifier = Modifier) {
     GraphiteCard(modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             KinLabel("Balance", Modifier.weight(1f), Color.White.copy(alpha = 0.55f))
-            state.wallet?.let { Mono(shortKey(it), color = Color.White.copy(alpha = 0.55f), size = 12) }
+            state.wallet?.let { Mono(displayName(state.names, it), color = Color.White.copy(alpha = 0.55f), size = 12) }
         }
         Spacer(Modifier.height(8.dp))
         Text(formatAmount(state.balance), style = MaterialTheme.typography.displayMedium, color = Color.White)
@@ -837,7 +837,7 @@ private fun DetailScreen(state: UiState, detail: CircleDetail, actions: Actions)
                 item { Text("No one has joined yet.", style = MaterialTheme.typography.bodyMedium, color = KinColors.Slate) }
             }
             items(detail.members, key = { it.address.toBase58() }) { m ->
-                MemberRow(c, m, m.wallet == me, detail.scores[m.wallet])
+                MemberRow(c, m, m.wallet == me, detail.scores[m.wallet], state.names)
             }
             item { ProofSection(c, detail.proof, actions.onLoadProof, actions.onOpenUrl, now) }
             item { Box(Modifier.navigationBarsPadding()) }
@@ -910,7 +910,7 @@ private fun CalendarCard(c: CircleData, members: List<MemberData>, me: PublicKey
 }
 
 @Composable
-private fun MemberRow(c: CircleData, m: MemberData, isMe: Boolean, score: ScoreData?) {
+private fun MemberRow(c: CircleData, m: MemberData, isMe: Boolean, score: ScoreData?, names: Map<String, String>) {
     val paid = m.roundsResolved > c.currentRound
     val isRecipient = c.status == CircleStatus.Active && c.roundOf(m.index) == c.currentRound
     CloudCard(padding = 12.dp) {
@@ -918,7 +918,7 @@ private fun MemberRow(c: CircleData, m: MemberData, isMe: Boolean, score: ScoreD
             Avatar(m.wallet.toBase58(), "${m.index + 1}", 40.dp, highlight = isRecipient)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(if (isMe) "You" else shortKey(m.wallet), style = MaterialTheme.typography.titleMedium)
+                Text(if (isMe) "You" else displayName(names, m.wallet), style = MaterialTheme.typography.titleMedium)
                 Text(
                     buildString {
                         c.roundOf(m.index)?.let { append("Paid in round ${it + 1}  ·  ") }

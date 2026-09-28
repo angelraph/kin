@@ -12,6 +12,7 @@ import app.kin.solana.FundsProof
 import app.kin.solana.Instruction
 import app.kin.solana.KinProgram
 import app.kin.solana.KinRepository
+import app.kin.name.NameResolver
 import app.kin.solana.MemberData
 import app.kin.solana.PublicKey
 import app.kin.solana.RpcException
@@ -61,6 +62,8 @@ data class UiState(
     val skrBalance: Long = 0,
     val seeker: SgtProof? = null,
     val detail: CircleDetail? = null,
+    /** Resolved .skr/.sol names, keyed by wallet address (base58). Wallets with none are simply absent. */
+    val names: Map<String, String> = emptyMap(),
     val loading: Boolean = false,
     val busy: Boolean = false,
     val notice: String? = null,
@@ -70,6 +73,7 @@ data class UiState(
 class KinViewModel : ViewModel() {
     private val rpc = SolanaRpc(Config.RPC_URL)
     private val repo = KinRepository(rpc)
+    private val nameResolver = NameResolver()
     private var session: WalletSession? = null
 
     private val _state = MutableStateFlow(UiState())
@@ -89,6 +93,7 @@ class KinViewModel : ViewModel() {
                 _state.update { it.copy(wallet = r.value) }
                 loadHome()
                 checkSeeker()
+                resolveNames(listOf(r.value))
             }
             is WalletResult.NoWallet -> notify("No wallet app found. Install a Solana wallet (Seed Vault Wallet on Seeker).")
             is WalletResult.Error -> notify(r.message)
@@ -161,6 +166,18 @@ class KinViewModel : ViewModel() {
         val allowances = repo.allowances(wallets, circle.mint)
         val keepProof = _state.value.detail?.takeIf { it.circle.address == address }?.proof
         _state.update { it.copy(detail = CircleDetail(circle, members, scores, allowances, keepProof)) }
+        resolveNames(wallets)
+    }
+
+    /**
+     * Looks up .skr/.sol names for [wallets] in the background and merges any found into state. Purely
+     * cosmetic: a wallet with no name, or a lookup that fails, just keeps showing its address.
+     */
+    private fun resolveNames(wallets: List<PublicKey>) {
+        viewModelScope.launch {
+            val found = runCatching { nameResolver.resolveMany(wallets) }.getOrDefault(emptyMap())
+            if (found.isNotEmpty()) _state.update { it.copy(names = it.names + found) }
+        }
     }
 
     /** Loads the on-chain proof for the open circle: vault balances against accounting, and real transactions. */

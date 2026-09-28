@@ -6,7 +6,7 @@ A circle is a group that pays a fixed amount every round. Each round, one member
 
 ## Try it in two minutes
 
-1. **Install.** [Download kin-0.4.0.apk](https://github.com/angelraph/kin/releases/latest/download/kin-0.4.0.apk) directly, or open the [latest release](https://github.com/angelraph/kin/releases/latest) page and tap "Assets" to find it. Open the downloaded file on any Android phone. Kin also runs fine on a Seeker. Your browser may ask to allow installing from this source once; that is normal for an app outside the Play Store.
+1. **Install.** [Download kin-0.5.0.apk](https://github.com/angelraph/kin/releases/latest/download/kin-0.5.0.apk) directly, or open the [latest release](https://github.com/angelraph/kin/releases/latest) page and tap "Assets" to find it. Open the downloaded file on any Android phone. Kin also runs fine on a Seeker. Your browser may ask to allow installing from this source once; that is normal for an app outside the Play Store.
 2. **See the idea first.** On the first screen tap "See a circle run, no wallet needed". It plays five people through five rounds locally, including a missed payment covered by a bond.
 3. **Set your wallet to devnet.** Kin works with any Mobile Wallet Adapter wallet. In Phantom: Settings, Developer Settings, turn on Testnet Mode, and choose Solana Devnet.
 4. **Connect and get funds.** Tap Connect wallet, open the You tab and tap "Get test funds". One signature gives you 500 tUSDC and 500 tSKR and, if your wallet is nearly empty, a little SOL for network fees.
@@ -26,6 +26,7 @@ The wallet may show "Failed to simulate the results of this request" on devnet. 
 - **Strangers and fake accounts.** A circle can require a Seeker Genesis Token. The program itself checks the token account, its owner and its mint authority, not just the app.
 - **"Trust me" accounting.** Every action emits an on-chain event. The app rebuilds a circle's history from real transaction logs and checks that the vaults hold at least what the program says is owed.
 - **Saving is a monthly event, not a daily one.** A home-screen widget shows the circle that needs attention most, so checking in does not require opening the app.
+- **Addresses are hard to trust at a glance.** Where Kin shows a wallet, it also checks for a .skr or .sol name (an AllDomains "main domain", the kind a Seeker hands out by default) and shows that instead. This is a read-only mainnet lookup, unrelated to which cluster a circle runs on; a wallet with none just keeps showing its address.
 
 Money sits in program-owned vaults. There are no admin keys and no server that can move funds.
 
@@ -36,7 +37,7 @@ A circle's contribution and bond are just an SPL token, so a circle can be denom
 ## Verify it yourself
 
 - **Program tests.** Run `anchor test` for 27 on-chain scenarios (23 for Kin, 4 for the faucet) on a local validator, and `cargo test -p kin --lib` for the pure logic (shuffle and Seeker token check).
-- **App tests.** Run `./gradlew testDebugUnitTest` in `app`. The Kotlin client is checked against values produced independently by the JavaScript client, including PDAs, token addresses, instruction discriminators and the shuffle.
+- **App tests.** Run `./gradlew testDebugUnitTest` in `app`. The Kotlin client is checked against values produced independently by the JavaScript client, including PDAs, token addresses, instruction discriminators and the shuffle. The .skr/.sol name lookup is checked against a real mainnet account it was captured from.
 - **In the app.** Open any circle and tap "Check on-chain" under "Proof on Solana". It reads vault balances, recomputes the payout order from the stored seed, and lists the circle's real transactions with links to the Solana Explorer.
 - **Verified build.** `solana-verify build` reproduces the exact bytes deployed on devnet. Running it yourself and comparing the hash to the deployed program should print the same value on both sides:
 

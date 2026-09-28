@@ -36,6 +36,12 @@ object Config {
      */
     val SEEKER_AUTHORITY: PublicKey = PublicKey.fromBase58("8LVUyuikCE2hBhb8uveLNXoCxN4Ty2Q2so5caDTQEVrN")
 
+    /**
+     * A .skr/.sol domain is a mainnet-only AllDomains record, unrelated to which cluster a circle runs on.
+     * Kin reads it read-only, over its own connection, purely to show a name instead of an address.
+     */
+    const val NAME_RESOLUTION_RPC_URL = "https://api.mainnet-beta.solana.com"
+
     const val EXPLORER_TX = "https://explorer.solana.com/tx/%s?cluster=devnet"
     const val EXPLORER_ADDRESS = "https://explorer.solana.com/address/%s?cluster=devnet"
 

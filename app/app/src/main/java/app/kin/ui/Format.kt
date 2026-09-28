@@ -26,6 +26,9 @@ fun parseAmount(text: String): Long? = runCatching {
 
 fun shortKey(k: PublicKey): String = k.toBase58().let { "${it.take(4)}…${it.takeLast(4)}" }
 
+/** A wallet's resolved .skr/.sol name if one was found, otherwise its shortened address. */
+fun displayName(names: Map<String, String>, wallet: PublicKey): String = names[wallet.toBase58()] ?: shortKey(wallet)
+
 fun formatDuration(totalSeconds: Long): String {
     var s = totalSeconds.coerceAtLeast(0)
     val d = s / 86400; s %= 86400
