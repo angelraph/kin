@@ -1,0 +1,135 @@
+1
+00:00:03,400 --> 00:00:04,222
+This is Kin.
+
+2
+00:00:04,222 --> 00:00:06,070
+A savings circle on Solana.
+
+3
+00:00:06,820 --> 00:00:11,333
+Millions of people already save in circles called ajo, susu or tanda.
+
+4
+00:00:11,333 --> 00:00:15,520
+Everyone pays in each round, and one member takes the whole pot.
+
+5
+00:00:15,520 --> 00:00:20,360
+Today, the money lives in a notebook, and the trust lives in a group chat.
+
+6
+00:00:21,250 --> 00:00:23,001
+Kin puts the circle on chain.
+
+7
+00:00:23,001 --> 00:00:24,934
+Every member locks a small bond.
+
+8
+00:00:24,934 --> 00:00:27,652
+Autopay is a capped allowance you can revoke.
+
+9
+00:00:27,652 --> 00:00:31,940
+And the payout order is drawn from on-chain data, so nobody can rig it.
+
+10
+00:00:33,350 --> 00:00:36,602
+You can watch a full circle play out without a wallet.
+
+11
+00:00:36,602 --> 00:00:39,131
+Here, Diego misses a payment in round two.
+
+12
+00:00:39,131 --> 00:00:44,370
+His bond covers it, the pot still pays out on time, and his Kin Score records the miss.
+
+13
+00:00:45,780 --> 00:00:47,241
+Connecting is one tap.
+
+14
+00:00:47,241 --> 00:00:49,432
+Android asks which wallet to use.
+
+15
+00:00:49,432 --> 00:00:52,286
+The wallet shows what Kin can and can't do.
+
+16
+00:00:52,286 --> 00:00:56,336
+On devnet, Phantom adds a notice for apps it hasn't verified.
+
+17
+00:00:56,336 --> 00:00:57,797
+Kin never holds a key.
+
+18
+00:00:57,797 --> 00:01:00,320
+Every action is signed in your wallet.
+
+19
+00:01:01,710 --> 00:01:04,699
+Before you invite someone, paste their wallet.
+
+20
+00:01:04,699 --> 00:01:12,040
+Kin reads their score straight from Solana, and shows their .skr or .sol name, so you see a name, not an address.
+
+21
+00:01:13,110 --> 00:01:16,416
+Your Kin Score follows your wallet into every circle.
+
+22
+00:01:16,416 --> 00:01:20,470
+And on devnet, test funds come from a faucet program, in one tap.
+
+23
+00:01:22,440 --> 00:01:24,909
+Creating a circle takes a few fields.
+
+24
+00:01:24,909 --> 00:01:30,315
+The token, the amount, how often rounds run, the number of members, and the bond.
+
+25
+00:01:30,315 --> 00:01:35,120
+A circle can even require a Seeker Genesis Token before anyone can join.
+
+26
+00:01:36,010 --> 00:01:38,756
+Turn on autopay, then join and lock your bond.
+
+27
+00:01:38,756 --> 00:01:45,500
+The circle starts as soon as it fills, and anyone can collect a payment that is due, but never more than the cap.
+
+28
+00:01:46,910 --> 00:01:49,231
+You don't have to take our word for it.
+
+29
+00:01:49,231 --> 00:01:51,731
+The Proof screen reads the chain directly.
+
+30
+00:01:51,731 --> 00:01:56,850
+The vaults, the program, and every transaction, with no admin key that can move funds.
+
+31
+00:01:57,880 --> 00:01:59,406
+Kin is live on devnet.
+
+32
+00:01:59,406 --> 00:02:02,320
+The code and the signed APK are on GitHub.
+
+33
+00:02:02,320 --> 00:02:03,291
+Save together.
+
+34
+00:02:03,291 --> 00:02:04,470
+Get paid in turn.
