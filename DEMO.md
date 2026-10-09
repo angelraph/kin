@@ -13,7 +13,7 @@ The app now opens with a short animated intro (oversized words SAVE, BONDED, VER
 
 ## Before filming
 
-- Install `kin-0.5.1.apk`, put the wallet on devnet, connect, and tap Get test funds so the balance is not empty.
+- Install `kin-0.5.2.apk`, put the wallet on devnet, connect, and tap Get test funds so the balance is not empty.
 - Turn on Stay awake (Developer options) so the phone does not lock mid take.
 - Have a second member ready. Either a second phone with Kin and its own wallet, or the friend helper on a laptop: `node scripts/demo-friend.js fund`, then `join`, `pay` and `payout` as the scenes need it.
 - Use the "One minute test run" use case so a full circle finishes while you talk.
