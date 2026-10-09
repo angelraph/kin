@@ -122,7 +122,7 @@ fun ProofSection(
                 ProofRow(
                     ok = true,
                     title = "Program",
-                    detail = "Runs ${shortKey(KinProgram.PROGRAM_ID)}. No admin keys can move funds.",
+                    detail = "Runs ${shortKey(KinProgram.PROGRAM_ID)}. No instruction lets anyone take funds. On devnet the developer can still upgrade it.",
                     onClick = { onOpenUrl(Config.EXPLORER_ADDRESS.format(KinProgram.PROGRAM_ID)) },
                 )
                 KinLabel("Transactions", color = Color.White.copy(alpha = 0.5f), modifier = Modifier.padding(top = 4.dp))

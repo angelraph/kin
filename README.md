@@ -28,7 +28,7 @@ The wallet may show "Failed to simulate the results of this request" on devnet. 
 - **Saving is a monthly event, not a daily one.** A home-screen widget shows the circle that needs attention most, so checking in does not require opening the app.
 - **Addresses are hard to trust at a glance.** Where Kin shows a wallet, it also checks for a .skr or .sol name (an AllDomains "main domain", the kind a Seeker hands out by default) and shows that instead. This is a read-only mainnet lookup, unrelated to which cluster a circle runs on; a wallet with none just keeps showing its address.
 
-Money sits in program-owned vaults. There are no admin keys and no server that can move funds.
+Money sits in program-owned vaults. No instruction in the program lets anyone, the developer included, take funds out of a circle, and there is no server that can move them. The program is still upgradeable while it runs on devnet (see Known limits).
 
 ## The SKR track
 
@@ -78,6 +78,7 @@ Known limits, stated plainly:
 - The random order comes from the recent slot hash when the last member joins. Someone joining last could influence the timing slightly, so it is a fair draw for a group of people who know each other, not a lottery for strangers.
 - Seeker Genesis Tokens only exist on mainnet. On devnet the app checks a test authority instead (see `scripts/seeker-test.js`). The code path is identical.
 - The size of one round's pot is capped while the program is young.
+- The program is upgradeable, and on devnet the developer holds the upgrade key, so new code could in principle change the rules. Before mainnet that key moves to a multisig with a time delay, so any upgrade is public before it takes effect, and the program can be made immutable once it has been reviewed and is stable.
 
 ## Releasing
 

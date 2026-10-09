@@ -155,7 +155,7 @@ private fun ProofPanel() {
     GraphiteCard(padding = 16.dp) {
         ProofLine("vault balance equals what members are owed")
         ProofLine("payout order recomputed from the on-chain seed")
-        ProofLine("no admin key can move funds")
+        ProofLine("no instruction lets anyone take funds")
         ProofLine("every payment links to the explorer")
         Spacer(Modifier.height(10.dp))
         Mono("program ${shortKey(KinProgram.PROGRAM_ID)}", color = Color.White.copy(alpha = 0.55f), size = 12)

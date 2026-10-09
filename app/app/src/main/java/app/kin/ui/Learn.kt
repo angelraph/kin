@@ -178,6 +178,7 @@ private val phases = listOf(
         "Next", "Mainnet", false,
         listOf(
             "Independent security review of the program",
+            "Upgrade key moved to a multisig with a time delay",
             "Real USDC with small caps on each pot",
             "Bonds and fees payable in SKR",
             "Listing on the Solana dApp Store",
@@ -245,7 +246,7 @@ private val faqs = listOf(
     ),
     Faq(
         "Where does the money sit?",
-        "In vaults owned by the program, not by us. There is no admin key that can move funds out of a circle. The Proof screen compares each vault with what members are owed.",
+        "In vaults owned by the program, not by us. No instruction in the program lets anyone, us included, take funds out of a circle. While Kin is on devnet the developer holds the key that can upgrade the program; before mainnet that key moves to a multisig with a time delay, so any change is public before it takes effect. The Proof screen compares each vault with what members are owed.",
     ),
     Faq(
         "What if someone stops paying?",

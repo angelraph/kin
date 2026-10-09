@@ -522,7 +522,7 @@ private fun YouTab(state: UiState, actions: Actions, reminders: Reminders) {
                 Spacer(Modifier.height(6.dp))
                 Mono(KinProgram.PROGRAM_ID.toBase58(), size = 12)
                 Spacer(Modifier.height(6.dp))
-                Text("Open in the explorer. No admin keys can move funds.", style = MaterialTheme.typography.bodyMedium, color = KinColors.Slate)
+                Text("Open in the explorer. No instruction lets anyone take funds. On devnet the developer can still upgrade it.", style = MaterialTheme.typography.bodyMedium, color = KinColors.Slate)
             }
         }
         item { QuietButton("Disconnect wallet", actions.onDisconnect, Modifier.fillMaxWidth()) }
